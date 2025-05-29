@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TopCell - Pedidos & Serviços</title>
+  <meta name="theme-color" content="#000" />
+  <link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f512.png" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #000;
+      --primary-light: #222;
+      --danger: #c0392b;
+      --gray-bg: #fafafa;
+      --contrast-bg: #fff;
+      --input-bg: #f7f7f7;
+      --border: #e0e0e0;
+      --radius: 12px;
+      --shadow: 0 4px 20px 0 rgba(31,38,135,0.08);
+      --transition: 0.18s cubic-bezier(.4,0,.2,1);
+      --font-main: 'Inter', Arial, sans-serif;
+    }
+    html, body { overflow-x: hidden; }
+    body {
+      font-family: var(--font-main);
+      background: var(--gray-bg);
+      color: #111;
+      max-width: 750px;
+      margin: 0 auto;
+      padding: 0 0 40px 0;
+      min-height: 100vh;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    #loader {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    #loader > div {
+      border: 8px solid #eee;
+      border-top: 8px solid var(--primary);
+      border-radius: 50%;
+      width: 60px; height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+    #modalEditarServico, #modalEditarPedido, #modalIncluirDiagnostico {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.18);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-conteudo {
+      background: var(--contrast-bg);
+      border-radius: var(--radius);
+      max-width: 400px;
+      width: 96vw;
+      max-height: 98vh;
+      overflow-y: auto;
+      padding: 28px 20px 20px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      animation: fadeIn 0.2s;
+      margin-bottom: 20vh;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97);} to   { opacity: 1; transform: scale(1);} }
+
+    #login, .pedido, .servico {
+      background: var(--contrast-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-top: 30px;
+      padding: 28px 22px 20px 22px;
+      border: 1.2px solid var(--border);
+      transition: box-shadow var(--transition), border var(--transition);
+    }
+    #login { max-width: 330px; margin: 60px auto; }
+    .logo-header img { height: 65px; border-radius: 11px; box-shadow: 0 4px 18px #d0e6ff2a; background: #ededed; margin-bottom: 10px; }
+    .logo-header { text-align: center; margin-bottom: 20px; }
+
+    input, select, button, textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: var(--font-main);
+      font-size: 1.06em;
+      border-radius: var(--radius);
+      margin: 8px 0 14px 0;
+      border: 1.5px solid var(--border);
+      padding: 13px 13px;
+      background: var(--input-bg);
+      color: #222;
+      outline: none;
+      transition: border var(--transition), background var(--transition);
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      background: #ececec;
+    }
+    textarea { min-height: 45px; resize: vertical; }
+    button {
+      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition), box-shadow var(--transition);
+      box-shadow: 0 2px 8px #00000022;
+      margin-bottom: 0;
+      letter-spacing: 0.02em;
+      font-size: 1.09em;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #222 0%, #000 100%);
+      box-shadow: 0 4px 14px #00000022;
+    }
+    .btn-peq {
+      width: 32px; height: 32px; font-size: 19px; margin-left: 7px;
+      border-radius: 50%; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--primary);
+      color: #fff; border: none;
+      box-shadow: 0 2px 5px #0002;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
+    .btn-peq:hover { background: #222; box-shadow: 0 2px 10px #0004; }
+    .azul { background: var(--primary) !important; }
+    .vermelho { background: linear-gradient(90deg,#fd746c 0%,#ff9068 100%) !important; }
+    .alerta, #login > div[style*="background:#fff3cd"] {
+      background: #fdf6d8 !important;
+      color: #8d6d1e !important;
+      border: 1.5px solid #ffe9b0 !important;
+      border-radius: 9px !important;
+      box-shadow: 0 2px 8px #fffbe7c7;
+      padding: 10px 13px !important;
+      font-size: 1.05em !important;
+      margin-bottom: 18px !important;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #menu {
+      display: flex; justify-content: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+      background: #ededed; border-radius: 16px; padding: 7px 0;
+      box-shadow: 0 1px 5px #0001;
+    }
+    #menu button {
+      width: auto; padding: 10px 30px; font-size: 1.05em;
+      font-weight: 600; border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      margin: 6px 0;
+      transition: background var(--transition), color var(--transition);
+    }
+    #menu button:hover, #menu button:focus { background: #222; color: #fff; }
+    @media (max-width: 600px) {
+      body { padding: 0 0 30px 0; }
+      #login, .pedido, .servico { padding: 15px 4vw 17px 4vw; margin-top: 20px; }
+      #menu { flex-direction: column; gap: 7px; padding: 5px 0;}
+      #menu button { width: 100%; padding: 13px 0; font-size: 17px; }
+      .logo-header img { height: 46px; }
+    }
+    #home > div { margin-bottom: 10px; }
+    #home h2 { color: var(--primary); margin: 22px 0 16px 0; font-size: 1.5em;}
+    #home hr { margin: 18px 0; }
+    #home ul { margin: 0 0 0 10px; padding: 0 0 0 15px; }
+    #home canvas {
+      background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #e0e0e0;
+      margin-top: 10px; padding: 6px;
+    }
+    .status-aguardando { color: #c0392b; font-weight:bold; }
+    .status-concluido { color: #27ae60; font-weight:bold; }
+    .codigo-exibido {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      font-weight: bold;
+      font-size: 1.01em;
+      padding: 2px 10px;
+      border-radius: 7px;
+      margin-left: 6px;
+      letter-spacing: 1px;
+    }
+    .filtro-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 14px 0;
+}
+
+.filtro-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  margin: 0;
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px 0;
+}
+
+.switch input[type="checkbox"] {
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.switch-label {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch-label input:checked + .slider {
+  background: var(--primary);
+}
+
+.switch-label .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ccc;
+  border-radius: 20px;
+  transition: .3s;
+}
+
+.switch-label .slider:before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transition: .3s;
+}
+
+.switch-label input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+  </style>
+</head>
+<body>
+<div id="loader"><div></div></div>
+<div id="login">
+  <div class="logo-header">
+    <img src="https://topcell.ct.ws/topcell.jpg" alt="TopCell Logo">
+  </div>
+  <div style="background:#fff3cd;color:#856404;border:1px solid #ffeeba;padding:8px 12px;border-radius:5px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:22px;">&#9888;&#65039;</span>
+    <span><b>Atenção:</b> O acesso é permitido somente para pessoal autorizado.</span>
+  </div>
+  <input type="email" id="usuario" placeholder="E-mail do usuário" autocomplete="username" />
+  <input type="password" id="senha" placeholder="Senha" />
+  <button onclick="fazerLogin()">Entrar</button>
+  <button onclick="window.location.href='index.html'" style="background:#eee;color:#333;margin-top:8px;">Voltar para a Página Inicial</button>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const senhaInput = document.getElementById("senha");
+      senhaInput.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          fazerLogin();
+        }
+      });
+    });
+  </script>
+</div>
+<div id="interface" style="display:none;">
+  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 10px;">
+    <span id="nomeUsuario" style="font-weight: bold; color: #333;"></span>
+    <button onclick="fazerLogout()" aria-label="Sair do sistema"
+            style="background-color: #c0392b; color: white; border: none; border-radius: 50%;
+                   width: 32px; height: 32px; font-size: 20px; cursor: pointer; display: flex;
+                   align-items: center; justify-content: center; padding: 0; line-height: 1;"
+            title="Sair">
+      ⏻
+    </button>
+  </div>
+  <div id="menu">
+    <button onclick="mostrarArea('home')">Home</button>
+    <button onclick="mostrarArea('pedidos')">Pedidos</button>
+    <button onclick="mostrarArea('servicos')">Serviços</button>
+    <button onclick="mostrarArea('diagnostico')">Diagnóstico</button>
+    <button onclick="mostrarArea('buscar')">Buscar</button>
+    <button onclick="mostrarArea('catalogo')" title="Catálogo" style="font-size:21px;padding:10px 20px;">📚</button>
+  </div>
+  <div id="ceo" style="display:none;"></div>
+  <!-- HOME -->
+  <div id="home" style="display:none;">
+    <h2 id="homeSaudacao"></h2>
+    <div>
+      <b>Usuário:</b> <span id="homeUsuario"></span><br>
+      <b>Data:</b> <span id="homeDataHora"></span>
+      <button id="btnPendencias" onclick="abrirPendenciasMenu()" style="padding:6px 18px;font-size:1em;border:none;border-radius:7px;margin-top:10px;cursor:pointer;font-weight:bold;transition:background 0.2s;display:inline-block;">Pendências</button>
+    </div>
+    <hr>
+    <div style="display:flex;flex-wrap:wrap;gap:15px;">
+      <div>
+        <b>Pedidos:</b> <span id="homeQtdPedidos"></span><br>
+        <b>Serviços:</b> <span id="homeQtdServicos"></span>
+      </div>
+      <div>
+        <b>Últimos pedidos:</b>
+        <ul id="homeUltimosPedidos"></ul>
+      </div>
+      <div>
+        <b>Últimos serviços:</b>
+        <ul id="homeUltimosServicos"></ul>
+      </div>
+    </div>
+    <hr>
+    <div>
+      <canvas id="homeGrafico" height="130" style="max-width:100%;"></canvas>
+    </div>
+  </div>
+  <!-- FIM HOME -->
+  <div id="catalogo" style="display:none;">
+  <h2>Catálogo de Celulares</h2>
+  <form id="formCelular" onsubmit="event.preventDefault(); salvarCelular();">
+    <input type="hidden" id="celId" />
+    <input type="text" id="celMarca" placeholder="Marca" required />
+    <input type="text" id="celModelo" placeholder="Modelo" required />
+    <input type="number" id="celValor" placeholder="Valor (R$)" step="0.01" min="0" required />
+    <textarea id="celInfo" placeholder="Informações (cor, armazenamento, estado, etc.)" required></textarea>
+    <input type="url" id="celFoto" placeholder="URL da foto" required />
+<button type="submit" style="width:auto;padding:6px 18px;font-size:0.97em;border-radius:8px;margin-right:10px;">Incluir</button>
+<button type="button" onclick="formCelularResetar()" style="background:#eee; color:#2c5dab;width:auto;padding:6px 14px;font-size:0.97em;border-radius:8px;">Limpar</button>
+  </form>
+  <hr>
+  <div id="listaCelulares"></div>
+</div>
+  <div id="pedidos" style="display:none;">
+    <div class="filtro-data-bloco">
+      <label for="filtroDataPedidos">Filtrar por data:</label>
+      <input type="date" id="filtroDataPedidos" placeholder="Selecione uma data" />
+      <button class="btn-peq azul" type="button" onclick="hojeFiltroPedidos()" title="Hoje">📅</button>
+      <span id="dataSelecionadaPedidos" style="margin-left:8px;color:#555;font-size:13px;"></span>
+    </div>
+    <div id="modalEditarPedido" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:1000;">
+      <div style="background:white;padding:20px;border-radius:8px;width:90%;max-width:400px;box-shadow:0 0 15px rgba(0,0,0,0.3);">
+        <h3>Editar Pedido</h3>
+        <form id="formEditarPedido" onsubmit="event.preventDefault(); salvarEdicaoPedido();">
+          <select id="editarLoja" required>
+            <option value="Brejões">Brejões</option>
+            <option value="Nova Itarana">Nova Itarana</option>
+            <option value="Loja 03">Loja 03</option>
+          </select>
+          <input type="date" id="editarData" required />
+          <input type="text" id="editarMarca" placeholder="Marca do aparelho" required />
+          <input type="text" id="editarModelo" placeholder="Modelo do aparelho" required />
+          <input type="text" id="editarPeca" placeholder="Peça solicitada" required />
+          <input type="number" id="editarQuantidade" placeholder="Quantidade" min="1" required />
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+            <button type="button" onclick="fecharModalEditar()">Cancelar</button>
+            <button type="submit" style="background:#2980b9;color:white;">Salvar</button>
+          </div>
+          <!-- Modal para cadastro de venda -->
+
+        </form>
+      </div>
+    </div>
+    <h2>Pedidos Registros</h2>
+    <form id="pedidoForm" onsubmit="event.preventDefault(); enviarPedido();">
+      <select id="loja">
+        <option value="Brejões">Brejões</option>
+        <option value="Nova Itarana">Nova Itarana</option>
+        <option value="Loja 03">Loja 03</option>
+      </select>
+      <input type="date" id="data" />
+      <input type="text" id="marca" placeholder="Marca do aparelho" />
+      <input type="text" id="modelo" placeholder="Modelo do aparelho" />
+      <input type="text" id="peca" placeholder="Peça solicitada" />
+      <input type="number" id="quantidade" placeholder="Quantidade" min="1" />
+      <button type="submit">Enviar</button>
+    </form>
+    <h3>Lista de Pedidos</h3>
+    <div id="listaPedidos"></div>
+    <button onclick="exportarPedidos()">Exportar Pedidos</button>
+    <button onclick="gerarPedidosPDF()">Exportar Pedidos PDF</button>
+  </div>
+  <div id="servicos" style="display:none;">
+    <div class="filtro-data-bloco">
+      <label for="filtroDataServicos">Filtrar por data:</label>
+      <input type="date" id="filtroDataServicos" placeholder="Selecione uma data" />
+      <button class="btn-peq azul" type="button" onclick="hojeFiltroServicos()" title="Hoje">📅</button>
+      <span id="dataSelecionadaServicos" style="margin-left:8px;color:#555;font-size:13px;"></span>
+    </div>
+    <div id="modalEditarServico">
+      <div class="modal-conteudo">
+        <h3>Editar Serviço</h3>
+        <form id="formEditarServico" onsubmit="event.preventDefault(); salvarEdicaoServico();">
+          <input type="text" id="editarCliente" placeholder="Nome do Cliente" required />
+          <input type="text" id="editarMarcaServ" placeholder="Marca" required />
+          <input type="text" id="editarModeloServ" placeholder="Modelo" required />
+          <input type="text" id="editarTipoServ" placeholder="Tipo de Serviço" required />
+          <select id="editarLocalServico" required>
+            <option value="Nova Itarana">Nova Itarana</option>
+            <option value="Brejões">Brejões</option>
+          </select>
+          <input type="date" id="editarDataServico" required />
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+            <button type="button" onclick="fecharModalEditarServico()">Cancelar</button>
+            <button type="submit" style="background:#2980b9;color:white;">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <h2>Registrar Serviços</h2>
+    <form id="formServico" onsubmit="event.preventDefault(); registrarServico();">
+      <input type="text" id="cliente" placeholder="Nome do Cliente" />
+      <input type="text" id="marcaServ" placeholder="Marca" />
+      <input type="text" id="modeloServ" placeholder="Modelo" />
+      <input type="text" id="tipoServ" placeholder="Tipo de Serviço" />
+      <select id="localServico">
+        <option value="Nova Itarana">Nova Itarana</option>
+        <option value="Brejões">Brejões</option>
+      </select>
+      <input type="date" id="dataServico" />
+      <button type="submit">Registrar Serviço</button>
+    </form>
+    <h3>Lista de Serviços</h3>
+    <div id="listaServicos"></div>
+    <button onclick="exportarServicos()">Exportar Serviços</button>
+  </div>
+  <div id="diagnostico" style="display:none;">
+    <div class="filtro-data-bloco">
+      <label for="filtroDataDiagnostico">Filtrar por data:</label>
+      <input type="date" id="filtroDataDiagnostico" placeholder="Selecione uma data" />
+      <button class="btn-peq azul" type="button" onclick="hojeFiltroDiagnostico()" title="Hoje">📅</button>
+      <span id="dataSelecionadaDiagnostico" style="margin-left:8px;color:#555;font-size:13px;"></span>
+    </div>
+    <h2>Diagnóstico de Aparelhos</h2>
+    <form id="formDiagnostico" onsubmit="event.preventDefault(); registrarDiagnostico();">
+      <input type="text" id="diagCliente" placeholder="Nome do Cliente" required />
+      <input type="text" id="diagMarca" placeholder="Marca" required />
+      <input type="text" id="diagModelo" placeholder="Modelo" required />
+      <input type="text" id="diagProblema" placeholder="Problema relatado" required />
+      <select id="diagLoja" required>
+        <option value="">Loja</option>
+        <option value="Nova Itarana">Nova Itarana</option>
+        <option value="Brejões">Brejões</option>
+      </select>
+      <div style="margin: 8px 0;">
+        <label>
+         <div class="switch">
+  <label class="switch-label">
+    <input type="checkbox" id="diagTemSenha" onchange="exibirCampoSenha()" />
+    <span class="slider"></span>
+  </label>
+  <span style="cursor:pointer;" onclick="document.getElementById('diagTemSenha').click();">Celular possui senha?</span>
+</div>
+      </div>
+      <input type="text" id="diagSenha" placeholder="Senha do aparelho" style="display:none;" />
+      <textarea id="diagAdicionais" placeholder="Informações adicionais" style="resize:vertical;"></textarea>
+      <button type="submit">Cadastrar Diagnóstico</button>
+    </form>
+    <h3>Lista de Diagnósticos</h3>
+    <div id="listaDiagnostico"></div>
+  </div>
+  <div id="modalIncluirDiagnostico">
+    <div class="modal-conteudo">
+      <h3>Incluir Diagnóstico</h3>
+      <form id="formIncluirDiagnostico" onsubmit="event.preventDefault(); salvarInclusaoDiagnostico();">
+        <textarea id="diagDiagnostico" placeholder="Diagnóstico" required style="resize:vertical;"></textarea>
+        <input type="text" id="diagPecas" placeholder="Peças necessárias" required />
+        <input type="number" id="diagValor" placeholder="Valor (R$)" step="0.01" min="0" required />
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" onclick="fecharModalIncluirDiagnostico()">Cancelar</button>
+          <button type="submit" style="background:#2980b9;color:white;">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="buscar" style="display:none;">
+    <h2>Buscar Serviços/Pedidos</h2>
+    <form id="formBuscar" onsubmit="event.preventDefault(); executarBusca();"
+          style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <input type="text" id="buscaNome" placeholder="Digite um nome, cliente ou modelo..." style="flex:2;" />
+      <select id="buscaTipo" style="flex:1;">
+        <option value="servicos">Serviços</option>
+        <option value="pedidos">Pedidos</option>
+        <option value="diagnostico">Diagnóstico</option>
+      </select>
+      <button type="submit" style="flex:1;">Buscar</button>
+    </form>
+    <div id="resultadosBusca" style="margin-top:16px;"></div>
+  </div>
+  <div id="menuPendencias" style="display:none;max-width:430px;margin:10px auto 0 auto;padding:20px 10px;">
+  <h2 style="color:#c0392b;text-align:center;margin-top:0;">Pendências</h2>
+  <div id="pendenciasConteudo"></div>
+  <button onclick="exportarPendenciasPDF()" style="background:#222;color:#fff;padding:8px 18px;border:none;border-radius:8px;margin:22px 0 0 0;float:right;">Exportar em PDF</button>
+  <button onclick="fecharPendenciasMenu()" style="background:#eee;color:#c0392b;padding:8px 16px;border:none;border-radius:8px;margin:22px 12px 0 0;float:left;">Voltar</button>
+  <div style="clear:both"></div>
+</div>
+<!-- Modal para cadastro de venda -->
+<div id="modalVendaCelular" style="display:none; position:fixed; z-index:4000; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.18); justify-content:center; align-items:center;">
+  <div style="background:#fff; border-radius:12px; max-width:370px; width:96vw; padding:28px 22px 20px 22px;">
+    <h3 style="margin-top:0;">Dados da Venda</h3>
+    <form id="formVendaCelular" onsubmit="event.preventDefault(); salvarVendaCelular();">
+      <input type="hidden" id="vendaCelId" />
+      <input type="text" id="vendaNome" placeholder="Nome do comprador" required />
+      <input type="text" id="vendaCPF" placeholder="CPF do comprador" maxlength="14" required />
+      <input type="date" id="vendaData" required />
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" onclick="fecharModalVendaCelular()" style="background:#eee;color:#c0392b;">Cancelar</button>
+        <button type="submit" style="background:#27ae60;color:#fff;">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+<script type="module">
+// Função para formatar a data para o padrão brasileiro (DD/MM/AAAA)
+function dataParaBR(dataIso) {
+  if (!dataIso || typeof dataIso !== "string") return "";
+  const parts = dataIso.split("-");
+  if (parts.length !== 3) return dataIso;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, update, remove, get, child } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyA3KTEYLjkKcvTSwfVkGUWvKHDhOPrYRmE",
+  authDomain: "topcell-7a189.firebaseapp.com",
+  projectId: "topcell-7a189",
+  storageBucket: "topcell-7a189.appspot.com",
+  messagingSenderId: "434719394133",
+  appId: "1:434719394133:web:a29403705d5fe3e3bd47dc",
+  measurementId: "G-2247T68SMN",
+  databaseURL: "https://topcell-7a189-default-rtdb.firebaseio.com/"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+let pedidoEditandoId = null;
+let pedidosSalvos = {};
+let servicosSalvos = {};
+let servicoEditandoId = null;
+let usuarioLogado = {nome:"", funcao:"", loja:""};
+let diagnosticoSalvos = {};
+let diagnosticoEditandoId = null;
+
+function getHoje() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+window.hojeFiltroPedidos = function() {
+  document.getElementById("filtroDataPedidos").value = getHoje();
+  window.mostrarPedidos(pedidosSalvos);
+};
+window.hojeFiltroServicos = function() {
+  document.getElementById("filtroDataServicos").value = getHoje();
+  window.mostrarServicos(servicosSalvos);
+};
+window.hojeFiltroDiagnostico = function() {
+  document.getElementById("filtroDataDiagnostico").value = getHoje();
+  window.mostrarDiagnostico(diagnosticoSalvos);
+};
+
+window.mostrarLoader = function() {
+  document.getElementById("loader").style.display = "flex";
+};
+window.esconderLoader = function() {
+  document.getElementById("loader").style.display = "none";
+};
+window.abrirModalEditarServico = function(id) {
+  const s = servicosSalvos[id];
+  if (!s) return alert("Serviço não encontrado.");
+  document.getElementById("editarCliente").value = s.cliente;
+  document.getElementById("editarMarcaServ").value = s.marca;
+  document.getElementById("editarModeloServ").value = s.modelo;
+  document.getElementById("editarTipoServ").value = s.tipo;
+  document.getElementById("editarLocalServico").value = s.local;
+  document.getElementById("editarDataServico").value = s.dataServico;
+  servicoEditandoId = id;
+  document.getElementById("modalEditarServico").style.display = "flex";
+};
+window.fecharModalEditarServico = function() {
+  servicoEditandoId = null;
+  document.getElementById("modalEditarServico").style.display = "none";
+};
+window.abrirModalIncluirDiagnostico = function(id) {
+  diagnosticoEditandoId = id;
+  document.getElementById("formIncluirDiagnostico").reset();
+  document.getElementById("modalIncluirDiagnostico").style.display = "flex";
+};
+window.fecharModalIncluirDiagnostico = function() {
+  diagnosticoEditandoId = null;
+  document.getElementById("modalIncluirDiagnostico").style.display = "none";
+};
+window.exibirCampoSenha = function() {
+  const cb = document.getElementById("diagTemSenha");
+  document.getElementById("diagSenha").style.display = cb.checked ? "block" : "none";
+};
+window.fazerLogout = () => {
+window.limparEstado();  
+window.mostrarLoader();
+  auth.signOut().then(() => {
+    // Limpa a interface e dados sensíveis
+    document.getElementById("interface").style.display = "none";
+    document.getElementById("login").style.display = "block";
+    document.getElementById("usuario").value = "";
+    document.getElementById("senha").value = "";
+    document.getElementById("nomeUsuario").textContent = "";
+
+    // Remove listener de bloqueio, se existir
+    if (window._bloqueioListener && typeof window._bloqueioListener === "function") {
+      window._bloqueioListener(); // Firebase retorna a função para remover o listener
+      window._bloqueioListener = null;
+    }
+  }).catch((error) => {
+    alert("Erro ao sair: " + error.message);
+  }).finally(() => {
+    window.esconderLoader();
+  });
+};
+window.onload = () => {
+  document.getElementById("login").style.display = "block";
+  // Inicializar filtros de datas para hoje
+  if(document.getElementById("filtroDataPedidos")) document.getElementById("filtroDataPedidos").value = getHoje();
+  if(document.getElementById("filtroDataServicos")) document.getElementById("filtroDataServicos").value = getHoje();
+  if(document.getElementById("filtroDataDiagnostico")) document.getElementById("filtroDataDiagnostico").value = getHoje();
+};
+window.abrirMenuCEO = function() {
+  const ceoDiv = document.getElementById("ceo");
+  ceoDiv.innerHTML = `
+    <h2>Usuários do sistema</h2>
+    <div id="legendaCargos" style="margin: 24px 0 24px 0; background: #fff; color: #111; border: 1px solid #eee; border-radius: 8px; padding: 18px 14px;">
+      <h3 style="color:#222; margin-top:0; font-size:1.18em;">Legenda de Permissões por Cargo</h3>
+      <ul style="margin:0; padding-left:18px; font-size:1em;">
+        <li>
+          <span style="font-size:1.2em;">👑 <strong>CEO:</strong></span>
+          <ul style="margin:0 0 10px 0; padding-left:18px;">
+            <li>Pode cadastrar, editar e excluir qualquer registro em qualquer localidade.</li>
+            <li>Pode cadastrar, alterar e excluir itens do catálogo.</li>
+            <li>Pode bloquear e desbloquear usuários.</li>
+            <li>Pode alterar qualquer informação dos usuários.</li>
+          </ul>
+        </li>
+        <li>
+          <span style="font-size:1.2em;">🕵️‍♂️ <strong>Supervisor:</strong></span>
+          <ul style="margin:0 0 10px 0; padding-left:18px;">
+            <li>Pode cadastrar e editar registros de qualquer localidade.</li>
+            <li>Pode excluir registros de qualquer localidade.</li>
+            <li>Pode cadastrar, alterar e excluir itens do catálogo.</li>
+          </ul>
+        </li>
+        <li>
+          <span style="font-size:1.2em;">🧑‍💼 <strong>Gerente:</strong></span>
+          <ul style="margin:0 0 10px 0; padding-left:18px;">
+            <li>Pode cadastrar e editar registros apenas da sua própria localidade (loja).</li>
+            <li>Pode excluir registros da sua localidade.</li>
+            <li>Não pode editar ou excluir dados de outras localidades.</li>
+          </ul>
+        </li>
+        <li>
+          <span style="font-size:1.2em;">👷 <strong>Operador:</strong></span>
+          <ul style="margin:0 0 10px 0; padding-left:18px;">
+            <li>Pode cadastrar registros apenas da sua própria localidade (loja).</li>
+            <li>Pode editar registros da sua localidade.</li>
+            <li>Não pode excluir dados.</li>
+          </ul>
+        </li>
+        <li>
+          <span style="font-size:1.2em;">⛔ <strong>Usuário Bloqueado:</strong></span>
+          <ul style="margin:0 0 0 0; padding-left:18px;">
+            <li>Não pode realizar nenhuma ação de cadastro, edição ou exclusão enquanto estiver bloqueado.</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <button onclick="window.mostrarFormularioCriarUsuario()" style="margin-bottom:10px;font-size:1em;background:#229954;color:#fff;padding:6px 14px;border:none;border-radius:4px;cursor:pointer;">+ Criar Usuário</button>
+    <div id="listaUsuariosCEO">Carregando...</div>
+    <div id="historicoUsuario" style="display:none;"></div>
+    <div id="formularioEditarUsuario" style="display:none;"></div>
+    <div id="formularioCriarUsuario" style="display:none;"></div>
+  `;
+  window.carregarUsuariosCEO();
+};
+
+
+window.fazerLogin = () => {
+  const email = document.getElementById("usuario").value;
+  const senha = document.getElementById("senha").value;
+  window.mostrarLoader();
+  signInWithEmailAndPassword(auth, email, senha)
+    .then((userCredential) => {
+      const user = userCredential.user;
+      const uid = user.uid;
+      const dbRef = ref(db);
+
+      // Buscar dados do usuário para verificar bloqueio ANTES de prosseguir
+      get(child(dbRef, `usuarios/${uid}`)).then((snapshot) => {
+        if (snapshot.exists()) {
+          const dados = snapshot.val();
+          if (dados.bloqueado) {
+            alert("Seu acesso está bloqueado. Fale com o administrador.");
+            window.esconderLoader();
+            signOut(auth); // Desloga por segurança
+            return;
+          }
+          usuarioLogado.nome = dados.nome || "Usuário";
+          usuarioLogado.funcao = dados.funcao || "Função";
+          usuarioLogado.loja = dados.loja || "Loja";
+          document.getElementById("nomeUsuario").textContent = `${usuarioLogado.nome} (${usuarioLogado.funcao}) - ${usuarioLogado.loja}`;
+        } else {
+          document.getElementById("nomeUsuario").textContent = "Usuário (sem dados)";
+        }
+        // Registrar histórico de login com data/hora e IP real, só se usuário não estiver bloqueado
+        fetch('https://api.ipify.org?format=json')
+          .then(res => res.json())
+          .then(data => {
+            push(ref(db, "usuarios/" + uid + "/historico_login"), {
+              data: (new Date()).toLocaleString("pt-BR"),
+              ip: data.ip
+            });
+          })
+          .catch(() => {
+            push(ref(db, "usuarios/" + uid + "/historico_login"), {
+              data: (new Date()).toLocaleString("pt-BR"),
+              ip: "não identificado"
+            });
+          });
+
+        // Listener para bloqueio em tempo real
+        if (window._bloqueioListener) window._bloqueioListener(); // Remove antigo listener se existir
+        window._bloqueioListener = onValue(
+          ref(db, "usuarios/" + uid + "/bloqueado"),
+          (snapshot) => {
+            if (snapshot.exists() && snapshot.val() === true) {
+              alert("Seu acesso foi bloqueado pelo administrador.");
+              signOut(auth).then(() => {
+                location.reload(); // Recarrega para garantir limpeza de interface
+              });
+            }
+          }
+        );
+
+        if (usuarioLogado.funcao === "CEO" && !document.getElementById("btnMenuCeo")) {
+          const menu = document.getElementById("menu");
+          const btn = document.createElement("button");
+          btn.id = "btnMenuCeo";
+          btn.innerHTML = '👑';
+          btn.title = "Área do CEO";
+          btn.onclick = function() {
+            window.mostrarArea('ceo');
+            window.abrirMenuCEO();
+          };
+          btn.style.fontSize = "1.12em";
+          btn.style.background = "#b7950b";
+          btn.style.color = "#fff";
+          menu.appendChild(btn);
+        }
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("interface").style.display = "block";
+        // Inicializar datas filtro
+        if(document.getElementById("filtroDataPedidos")) document.getElementById("filtroDataPedidos").value = getHoje();
+        if(document.getElementById("filtroDataServicos")) document.getElementById("filtroDataServicos").value = getHoje();
+        if(document.getElementById("filtroDataDiagnostico")) document.getElementById("filtroDataDiagnostico").value = getHoje();
+        carregarPedidos();
+        carregarServicos();
+        carregarDiagnostico();
+        window.mostrarArea("home");
+      }).catch(() => {
+        document.getElementById("nomeUsuario").textContent = "Erro ao carregar usuário";
+      }).finally(() => { window.esconderLoader(); });
+    })
+    .catch((error) => { 
+      alert("Falha no login: " + error.message); 
+      window.esconderLoader(); 
+    });
+};
+window.mostrarArea = (area) => {
+  window.limparEstado(); // Limpa tudo antes de mostrar qualquer área
+  document.getElementById("menuPendencias").style.display = "none";
+  document.getElementById("home").style.display = area === "home" ? "block" : "none";
+  document.getElementById("pedidos").style.display = area === "pedidos" ? "block" : "none";
+  document.getElementById("servicos").style.display = area === "servicos" ? "block" : "none";
+  document.getElementById("diagnostico").style.display = area === "diagnostico" ? "block" : "none";
+  document.getElementById("buscar").style.display = area === "buscar" ? "block" : "none";
+  document.getElementById("ceo").style.display = area === "ceo" ? "block" : "none";
+  if(area === "pedidos") carregarPedidos();
+  if(area === "servicos") carregarServicos();
+  if(area === "diagnostico") carregarDiagnostico();
+  if(area === "home") atualizarHome();
+  if(area === "buscar") {
+    document.getElementById("formBuscar").reset();
+    document.getElementById("resultadosBusca").innerHTML = "";
+  }
+};
+// FILTRO DATA - EVENTOS + exibição da data selecionada no formato BR
+if (typeof window !== "undefined") {
+  window.addEventListener("DOMContentLoaded", ()=>{
+    function atualizarSpanDataSelecionada(idInput, idSpan) {
+      const valor = document.getElementById(idInput)?.value;
+      document.getElementById(idSpan).textContent = valor ? `Data selecionada: ${dataParaBR(valor)}` : "";
+    }
+    if(document.getElementById("filtroDataPedidos")) {
+      document.getElementById("filtroDataPedidos").addEventListener("change",()=>{
+        window.mostrarPedidos(pedidosSalvos);
+        atualizarSpanDataSelecionada("filtroDataPedidos","dataSelecionadaPedidos");
+      });
+      atualizarSpanDataSelecionada("filtroDataPedidos","dataSelecionadaPedidos");
+    }
+    if(document.getElementById("filtroDataServicos")) {
+      document.getElementById("filtroDataServicos").addEventListener("change",()=>{
+        window.mostrarServicos(servicosSalvos);
+        atualizarSpanDataSelecionada("filtroDataServicos","dataSelecionadaServicos");
+      });
+      atualizarSpanDataSelecionada("filtroDataServicos","dataSelecionadaServicos");
+    }
+    if(document.getElementById("filtroDataDiagnostico")) {
+      document.getElementById("filtroDataDiagnostico").addEventListener("change",()=>{
+        window.mostrarDiagnostico(diagnosticoSalvos);
+        atualizarSpanDataSelecionada("filtroDataDiagnostico","dataSelecionadaDiagnostico");
+      });
+      atualizarSpanDataSelecionada("filtroDataDiagnostico","dataSelecionadaDiagnostico");
+    }
+  });
+}
+
+// PEDIDOS
+window.enviarPedido = () => {
+  const loja = document.getElementById("loja").value;
+  const data = document.getElementById("data").value;
+  const marca = document.getElementById("marca").value;
+  const modelo = document.getElementById("modelo").value;
+  const peca = document.getElementById("peca").value;
+  const quantidade = document.getElementById("quantidade").value;
+  if (!marca || !modelo || !peca || !quantidade || !data) {
+    alert("Preencha todos os campos."); return;
+  }
+  window.mostrarLoader();
+  if (pedidoEditandoId) {
+    update(ref(db, "pedidos/" + pedidoEditandoId), { loja, data, marca, modelo, peca, quantidade }).then(() => {
+      alert("Pedido atualizado com sucesso!");
+      pedidoEditandoId = null;
+      document.getElementById("pedidoForm").reset();
+      carregarPedidos();
+    }).catch((error) => { alert("Erro ao atualizar pedido: " + error.message); }).finally(() => { window.esconderLoader(); });
+  } else {
+    const novoRef = push(ref(db, "pedidos"));
+    set(novoRef, { loja, data, marca, modelo, peca, quantidade })
+      .then(() => {
+        alert("Pedido salvo com sucesso!");
+        document.getElementById("pedidoForm").reset();
+        carregarPedidos();
+      })
+      .catch((error) => { alert("Erro ao salvar pedido: " + error.message); })
+      .finally(() => { window.esconderLoader(); });
+  }
+};
+window.carregarPedidos = () => {
+  window.mostrarLoader();
+  const pedidosRef = ref(db, "pedidos");
+  onValue(pedidosRef, (snapshot) => {
+    pedidosSalvos = snapshot.val() || {};
+    window.mostrarPedidos(pedidosSalvos);
+    window.atualizarHome();
+    window.esconderLoader();
+  }, (error) => { alert("Erro ao carregar pedidos: " + error.message); window.esconderLoader(); });
+};
+window.mostrarPedidos = (dados) => {
+  const lista = document.getElementById("listaPedidos");
+  lista.innerHTML = "";
+  const dataFiltro = document.getElementById("filtroDataPedidos")?.value || getHoje();
+  for (let id in dados) {
+    const p = dados[id];
+    if (p.data !== dataFiltro) continue;
+    const div = document.createElement("div");
+    div.className = "pedido";
+    div.innerHTML = `
+      <b>${p.loja}</b> | ${dataParaBR(p.data)} | ${p.marca} ${p.modelo} | ${p.peca} (${p.quantidade})
+      <button class="btn-peq azul" onclick="abrirModalEditarPedido('${id}')" title="Editar">✏️</button>
+      <button class="btn-peq vermelho" onclick="apagarPedido('${id}')" title="Apagar">🗑️</button>
+    `;
+    lista.appendChild(div);
+  }
+  if (lista.innerHTML.trim() === "") lista.innerHTML = "<i>Nenhum pedido para a data selecionada.</i>";
+};
+window.abrirModalEditarPedido = (id) => {
+  const p = pedidosSalvos[id];
+  if (!p) return alert("Pedido não encontrado");
+  document.getElementById("editarLoja").value = p.loja;
+  document.getElementById("editarData").value = p.data;
+  document.getElementById("editarMarca").value = p.marca;
+  document.getElementById("editarModelo").value = p.modelo;
+  document.getElementById("editarPeca").value = p.peca;
+  document.getElementById("editarQuantidade").value = p.quantidade;
+  pedidoEditandoId = id;
+  document.getElementById("modalEditarPedido").style.display = "flex";
+};
+window.fecharModalEditar = () => {
+  pedidoEditandoId = null;
+  document.getElementById("modalEditarPedido").style.display = "none";
+};
+window.salvarEdicaoPedido = () => {
+  const loja = document.getElementById("editarLoja").value;
+  const data = document.getElementById("editarData").value;
+  const marca = document.getElementById("editarMarca").value;
+  const modelo = document.getElementById("editarModelo").value;
+  const peca = document.getElementById("editarPeca").value;
+  const quantidade = document.getElementById("editarQuantidade").value;
+  if (!marca || !modelo || !peca || !quantidade || !data) {
+    alert("Preencha todos os campos."); return;
+  }
+  if (!pedidoEditandoId) { alert("Nenhum pedido selecionado para edição."); return; }
+  window.mostrarLoader();
+  update(ref(db, "pedidos/" + pedidoEditandoId), { loja, data, marca, modelo, peca, quantidade })
+    .then(() => { alert("Pedido atualizado com sucesso!"); window.fecharModalEditar(); carregarPedidos(); })
+    .catch(err => { alert("Erro ao atualizar pedido: " + err.message); })
+    .finally(() => { window.esconderLoader(); });
+};
+window.apagarPedido = (id) => {
+  if (confirm("Deseja apagar este pedido?")) {
+    window.mostrarLoader();
+    remove(ref(db, "pedidos/" + id))
+      .then(() => { alert("Pedido apagado."); carregarPedidos(); })
+      .catch((error) => { alert("Erro ao apagar pedido: " + error.message); })
+      .finally(() => { window.esconderLoader(); });
+  }
+};
+window.exportarPedidos = () => {
+  let texto = "";
+  for (let id in pedidosSalvos) {
+    const p = pedidosSalvos[id];
+    texto += `Loja: ${p.loja}\nData: ${dataParaBR(p.data)}\n${p.marca} ${p.modelo} - ${p.peca} (Qtd: ${p.quantidade})\n---\n`;
+  }
+  const blob = new Blob([texto], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pedidos.txt";
+  a.click();
+};
+
+// SERVIÇOS
+window.salvarEdicaoServico = function() {
+  const cliente = document.getElementById("editarCliente").value;
+  const marca = document.getElementById("editarMarcaServ").value;
+  const modelo = document.getElementById("editarModeloServ").value;
+  const tipo = document.getElementById("editarTipoServ").value;
+  const local = document.getElementById("editarLocalServico").value;
+  const dataServico = document.getElementById("editarDataServico").value;
+  if (!cliente || !marca || !modelo || !tipo || !local || !dataServico) {
+    alert("Preencha todos os campos."); return;
+  }
+  window.mostrarLoader();
+  update(ref(db, "servicos/" + servicoEditandoId), {
+    cliente, marca, modelo, tipo, local, dataServico
+  })
+    .then(() => {
+      alert("Serviço atualizado com sucesso!");
+      window.fecharModalEditarServico();
+      carregarServicos();
+    })
+    .catch((err) => { alert("Erro ao atualizar serviço: " + err.message); })
+    .finally(() => { window.esconderLoader(); });
+};
+
+window.registrarServico = () => {
+  const cliente = document.getElementById("cliente").value;
+  const marca = document.getElementById("marcaServ").value;
+  const modelo = document.getElementById("modeloServ").value;
+  const tipo = document.getElementById("tipoServ").value;
+  const local = document.getElementById("localServico").value;
+  const dataServico = document.getElementById("dataServico").value;
+  if (!cliente || !marca || !modelo || !tipo || !local || !dataServico) {
+    alert("Preencha todos os campos."); return;
+  }
+  window.mostrarLoader();
+  const codigo = gerarCodigoCurto('S-');
+  const novoRef = push(ref(db, "servicos"));
+  set(novoRef, { cliente, marca, modelo, tipo, local, dataServico, status: "nao_realizado", codigo })
+    .then(() => { alert(`Serviço registrado com sucesso!\nCódigo para consulta do cliente: ${codigo}`); document.getElementById("formServico").reset(); carregarServicos(); })
+    .catch((error) => { alert("Erro ao registrar serviço: " + error.message); })
+    .finally(() => { window.esconderLoader(); });
+};
+
+// NOVA FUNÇÃO: Marcar serviço como concluído e gerar garantia
+window.concluirServico = (id) => {
+  if (confirm("Marcar este serviço como concluído?")) {
+    window.mostrarLoader();
+    // Apenas atualiza o status para "concluido"
+    update(ref(db, "servicos/" + id), { status: "concluido" })
+      .then(() => { carregarServicos(); })
+      .catch((error) => { alert("Erro ao concluir: " + error.message); })
+      .finally(() => { window.esconderLoader(); });
+  }
+};
+
+window.carregarServicos = () => {
+  window.mostrarLoader();
+  const servicosRef = ref(db, "servicos");
+  onValue(servicosRef, (snapshot) => {
+    servicosSalvos = snapshot.val() || {};
+    window.mostrarServicos(servicosSalvos);
+    window.atualizarHome();
+    window.esconderLoader();
+  }, (error) => { alert("Erro ao carregar serviços: " + error.message); window.esconderLoader(); });
+};
+
+// AJUSTADO: Garantia baseada em 90 dias após dataServico (corrigido)
+window.mostrarServicos = (dados) => {
+  const lista = document.getElementById("listaServicos");
+  lista.innerHTML = "";
+  const dataFiltro = document.getElementById("filtroDataServicos")?.value || getHoje();
+  for (let id in dados) {
+    const s = dados[id];
+    if (s.dataServico !== dataFiltro) continue;
+    const exibirGarantia = s.status === "concluido";
+    let garantiaStatus = "";
+    let dataExpiracaoStr = "";
+    if (exibirGarantia && s.dataServico) {
+      const dataServico = new Date(s.dataServico + "T00:00:00");
+      const dataExp = new Date(dataServico.getTime() + 90 * 24 * 60 * 60 * 1000);
+      dataExpiracaoStr = dataParaBR(dataExp.toISOString().split("T")[0]);
+      const hoje = new Date();
+      hoje.setHours(0,0,0,0);
+      dataExp.setHours(0,0,0,0);
+      if (dataExp >= hoje) {
+        garantiaStatus = `<span style="color:green;font-weight:bold;">Garantia vigente</span> (até ${dataExpiracaoStr})`;
+      } else {
+        garantiaStatus = `<span style="color:#c0392b;font-weight:bold;">Garantia expirada</span> (até ${dataExpiracaoStr})`;
+      }
+    }
+    const div = document.createElement("div");
+    div.className = "servico";
+    div.innerHTML = `
+      <b>${s.cliente}</b> | ${s.local}<br>
+      ${s.marca} ${s.modelo} - ${s.tipo}<br>
+      Realizado em: ${dataParaBR(s.dataServico)}<br>
+      <b>Código:</b> <span class="codigo-exibido">${s.codigo || 'Não gerado'}</span><br>
+      <span>Status: ${s.status === "concluido" ? "<span style='color:green'>Concluído</span>" : "<span style='color:#c0392b'>Não realizado</span>"}</span>
+      ${garantiaStatus ? `<br>${garantiaStatus}` : ""}
+      <br>
+      ${s.status !== "concluido" ? `<button class="btn-peq azul" onclick="concluirServico('${id}')" title="Marcar como concluído">✔️</button>` : ""}
+      <button class="btn-peq azul" onclick="abrirModalEditarServico('${id}')" title="Editar">✏️</button>
+      <button class="btn-peq vermelho" onclick="apagarServico('${id}')" title="Apagar">🗑️</button>
+      ${s.status === "concluido" ? `<button class="btn-peq azul" onclick="gerarComprovantePDF('${id}')" title="Gerar comprovante">🧾</button>` : ""}
+    `;
+    lista.appendChild(div);
+  }
+  if (lista.innerHTML.trim() === "") lista.innerHTML = "<i>Nenhum serviço para a data selecionada.</i>";
+};
+
+window.apagarServico = (id) => {
+  if (confirm("Deseja apagar este serviço?")) {
+    window.mostrarLoader();
+    remove(ref(db, "servicos/" + id))
+      .then(() => { alert("Serviço apagado."); carregarServicos(); })
+      .catch((error) => { alert("Erro ao apagar serviço: " + error.message); })
+      .finally(() => { window.esconderLoader(); });
+  }
+};
+window.exportarServicos = () => {
+  let texto = "";
+  for (let id in servicosSalvos) {
+    const s = servicosSalvos[id];
+    let dataExpiracao = "";
+    if (s.status === "concluido" && s.dataServico) {
+      const dataServico = new Date(s.dataServico + "T00:00:00");
+      const dataExp = new Date(dataServico.getTime() + 90 * 24 * 60 * 60 * 1000);
+      dataExpiracao = dataParaBR(dataExp.toISOString().split("T")[0]);
+    }
+    texto += `Cliente: ${s.cliente}\nLocal: ${s.local}\n${s.marca} ${s.modelo} - ${s.tipo}\nData: ${dataParaBR(s.dataServico)} | Garantia até: ${dataExpiracao||'-'}\nCódigo: ${s.codigo || ''}\n---\n`;
+  }
+  const blob = new Blob([texto], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "servicos.txt";
+  a.click();
+};
+
+// DIAGNÓSTICO
+window.registrarDiagnostico = function() {
+  const cliente = document.getElementById("diagCliente").value.trim();
+  const marca = document.getElementById("diagMarca").value.trim();
+  const modelo = document.getElementById("diagModelo").value.trim();
+  const problema = document.getElementById("diagProblema").value.trim();
+  const loja = document.getElementById("diagLoja").value;
+  const temSenha = document.getElementById("diagTemSenha").checked;
+  const senha = temSenha ? document.getElementById("diagSenha").value.trim() : "";
+  const adicionais = document.getElementById("diagAdicionais").value.trim();
+
+  if(!cliente || !marca || !modelo || !problema || !loja) {
+    alert("Preencha todos os campos obrigatórios."); return;
+  }
+  window.mostrarLoader();
+  const codigo = gerarCodigoCurto('D-');
+  const novoRef = push(ref(db, "diagnostico"));
+  set(novoRef, {
+    cliente, marca, modelo, problema, loja,
+    temSenha: temSenha,
+    senha: senha,
+    adicionais: adicionais,
+    status: "aguardando",
+    dataCadastro: getHoje(),
+    codigo
+  }).then(() => {
+    alert(`Diagnóstico cadastrado!\nCódigo para consulta do cliente: ${codigo}`);
+    document.getElementById("formDiagnostico").reset();
+    exibirCampoSenha();
+    carregarDiagnostico();
+  }).catch(err => {
+    alert("Erro ao cadastrar: " + err.message);
+  }).finally(() => {
+    window.esconderLoader();
+  });
+};
+window.carregarDiagnostico = function() {
+  window.mostrarLoader();
+  const diagsRef = ref(db, "diagnostico");
+  onValue(diagsRef, (snapshot) => {
+    diagnosticoSalvos = snapshot.val() || {};
+    window.mostrarDiagnostico(diagnosticoSalvos);
+    window.esconderLoader();
+  }, (error) => {
+    alert("Erro ao carregar diagnósticos: " + error.message);
+    window.esconderLoader();
+  });
+};
+window.mostrarDiagnostico = function(dados) {
+  const lista = document.getElementById("listaDiagnostico");
+  lista.innerHTML = "";
+  const dataFiltro = document.getElementById("filtroDataDiagnostico")?.value || getHoje();
+  const chaves = Object.keys(dados || {});
+  let algum = false;
+  chaves.reverse().forEach(id => {
+    const d = dados[id];
+    if (d.dataCadastro !== dataFiltro) return;
+    algum = true;
+    const statusText = d.status === "aguardando"
+      ? '<span class="status-aguardando">Aguardando diagnóstico</span>'
+      : '<span class="status-concluido">Diagnóstico concluído</span>';
+    const senhaInfo = d.temSenha ? `<br><b>Senha:</b> ${d.senha}` : '';
+    const adicionaisInfo = d.adicionais ? `<br><b>Adicionais:</b> ${d.adicionais}` : '';
+    let diagnosticoInfo = "";
+    if (d.status === "concluido") {
+      diagnosticoInfo = `
+        <br><b>Diagnóstico:</b> ${d.diagnostico||""}
+        <br><b>Peças necessárias:</b> ${d.pecas||""}
+        <br><b>Valor:</b> R$ ${d.valor ? Number(d.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}) : ""}
+      `;
+      
+    }
+    const btnDiagnostico = d.status === "aguardando"
+      ? `<button class="btn-peq azul" title="Incluir diagnóstico" onclick="abrirModalIncluirDiagnostico('${id}')">🔍</button>`
+      : "";
+    const btnImportar = `
+      <button class="btn-peq azul" title="Importar para Serviço" onclick="importarDiagnosticoParaServico('${id}')">⬇️</button>
+    `;
+    const btnApagar = `<button class="btn-peq vermelho" onclick="apagarDiagnostico('${id}')" title="Apagar">🗑️</button>`;
+    const btnPDF = `<button class="btn-peq azul" onclick="gerarDiagnosticoPDF('${id}')" title="Gerar PDF">🧾</button>`;
+    lista.innerHTML += `
+      <div class="pedido">
+        <b>${d.cliente}</b> | ${d.marca} ${d.modelo}<br>
+        <b>Problema:</b> ${d.problema}<br>
+        <b>Loja:</b> ${d.loja} | <b>Data:</b> ${dataParaBR(d.dataCadastro)}<br>
+        <b>Código:</b> <span class="codigo-exibido">${d.codigo || 'Não gerado'}</span><br>
+        ${statusText}
+        ${senhaInfo}
+        ${adicionaisInfo}
+        ${diagnosticoInfo}
+        <br>${btnDiagnostico} ${btnImportar} ${btnApagar} ${btnPDF}
+      </div>
+    `;
+  });
+  if (!algum) lista.innerHTML = "<i>Nenhum diagnóstico para a data selecionada.</i>";
+};
+// Função para importar dados do diagnóstico para o serviço
+window.importarDiagnosticoParaServico = function(idDiag) {
+  const d = diagnosticoSalvos[idDiag];
+  if (!d) return alert('Diagnóstico não encontrado!');
+  document.getElementById("cliente").value = d.cliente || '';
+  document.getElementById("marcaServ").value = d.marca || '';
+  document.getElementById("modeloServ").value = d.modelo || '';
+  document.getElementById("tipoServ").value = d.problema || '';
+  document.getElementById("localServico").value = d.loja || '';
+  document.getElementById("dataServico").value = getHoje();
+  alert("Dados importados para o formulário de serviço. Revise e salve normalmente.");
+  window.mostrarArea("servicos");
+};
+window.apagarDiagnostico = function(id) {
+  if (confirm("Deseja apagar este diagnóstico?")) {
+    window.mostrarLoader();
+    remove(ref(db, "diagnostico/" + id))
+      .then(() => {
+        alert("Diagnóstico excluído!");
+        carregarDiagnostico();
+      })
+      .catch((error) => {
+        alert("Erro ao apagar diagnóstico: " + error.message);
+      })
+      .finally(() => { window.esconderLoader(); });
+  }
+};
+window.salvarInclusaoDiagnostico = function() {
+  if (!diagnosticoEditandoId) {
+    alert("Diagnóstico não selecionado!"); return;
+  }
+  const diagnostico = document.getElementById("diagDiagnostico").value.trim();
+  const pecas = document.getElementById("diagPecas").value.trim();
+  const valor = parseFloat(document.getElementById("diagValor").value);
+  if (!diagnostico || !pecas || isNaN(valor)) {
+    alert("Preencha todos os campos!"); return;
+  }
+  window.mostrarLoader();
+  update(ref(db, "diagnostico/" + diagnosticoEditandoId), {
+    diagnostico, pecas, valor, status: "concluido"
+  }).then(() => {
+    alert("Diagnóstico incluído e status atualizado!");
+    fecharModalIncluirDiagnostico();
+    carregarDiagnostico();
+  }).catch((error) => {
+    alert("Erro ao salvar diagnóstico: " + error.message);
+  }).finally(() => { window.esconderLoader(); });
+};
+
+window.atualizarHome = function() {
+  function saudacao() {
+    const h = new Date().getHours();
+    if(h < 6) return "Boa madrugada";
+    if(h < 12) return "Bom dia";
+    if(h < 18) return "Boa tarde";
+    return "Boa noite";
+  }
+  document.getElementById("homeSaudacao").textContent = saudacao() + ", seja bem-vindo(a)!";
+  document.getElementById("homeUsuario").textContent = document.getElementById("nomeUsuario").textContent;
+const agora = new Date();
+  const diasSemana = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+  const diaSemana = diasSemana[agora.getDay()];
+  const dataBR = agora.toLocaleDateString("pt-BR");
+  document.getElementById("homeDataHora").textContent = `${dataBR} (${diaSemana})`;
+  document.getElementById("homeQtdPedidos").textContent = Object.keys(pedidosSalvos||{}).length;
+  document.getElementById("homeQtdServicos").textContent = Object.keys(servicosSalvos||{}).length;
+  const ultPed = Object.entries(pedidosSalvos||{}).reverse().slice(0,3);
+  const ulPed = document.getElementById("homeUltimosPedidos");
+  ulPed.innerHTML = "";
+  ultPed.forEach(([id,p])=>{
+    const li = document.createElement("li");
+    li.textContent = `${dataParaBR(p.data)} - ${p.marca} ${p.modelo} (${p.peca}, Qtd: ${p.quantidade})`;
+    ulPed.appendChild(li);
+  });
+  const ultServ = Object.entries(servicosSalvos||{}).reverse().slice(0,3);
+  const ulServ = document.getElementById("homeUltimosServicos");
+  ulServ.innerHTML = "";
+  ultServ.forEach(([id,s])=>{
+    const li = document.createElement("li");
+    li.textContent = `${dataParaBR(s.dataServico)} - ${s.cliente} (${s.marca} ${s.modelo}, ${s.tipo})`;
+    ulServ.appendChild(li);
+  });
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  let dadosPedidos = Array(12).fill(0);
+  for(let id in pedidosSalvos) {
+    const p = pedidosSalvos[id];
+    const m = (p.data||"").split("-")[1];
+    if(m) {
+      const idx = parseInt(m,10)-1;
+      dadosPedidos[idx] += 1;
+    }
+  }
+  if(window._graficoHome) window._graficoHome.destroy();
+  const ctx = document.getElementById("homeGrafico").getContext("2d");
+  window._graficoHome = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        {label:'Pedidos', data:dadosPedidos, backgroundColor:'rgba(52,152,219,0.5)', yAxisID:'pedidos'}
+      ]
+    },
+    options: {
+      responsive:true,
+      scales: {
+        y: { beginAtZero:true, title:{display:true,text:"Valores (R$)"} },
+        pedidos: {
+          beginAtZero:true,
+          position:'right',
+          title:{display:true,text:"Pedidos"}
+        }
+      },
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+  window.atualizarBotaoPendencias();
+};
+
+window.executarBusca = function() {
+  const termo = document.getElementById("buscaNome").value.trim().toLowerCase();
+  const tipo = document.getElementById("buscaTipo").value;
+  const resultadosDiv = document.getElementById("resultadosBusca");
+  resultadosDiv.innerHTML = "";
+  if (!termo) {
+    resultadosDiv.innerHTML = "<i>Digite um termo para buscar.</i>";
+    return;
+  }
+  let encontrados = [];
+  if (tipo === "servicos") {
+    for (let id in servicosSalvos) {
+      const s = servicosSalvos[id];
+      if (
+        (s.cliente || "").toLowerCase().includes(termo) ||
+        (s.marca || "").toLowerCase().includes(termo) ||
+        (s.modelo || "").toLowerCase().includes(termo) ||
+        (s.tipo || "").toLowerCase().includes(termo) ||
+        (s.codigo || "").toLowerCase().includes(termo)
+      ) {
+        // Aqui você pode colocar mais campos se desejar
+        let dataExpiracao = "";
+        let garantiaStatus = "";
+        if (s.status === "concluido" && s.dataServico) {
+          const dataServico = new Date(s.dataServico + "T00:00:00");
+          const dataExp = new Date(dataServico.getTime() + 90 * 24 * 60 * 60 * 1000);
+          dataExpiracao = dataParaBR(dataExp.toISOString().split("T")[0]);
+          const hoje = new Date();
+          hoje.setHours(0,0,0,0);
+          dataExp.setHours(0,0,0,0);
+          if (dataExp >= hoje) {
+            garantiaStatus = `<span style="color:green;font-weight:bold;">Garantia vigente</span>`;
+          } else {
+            garantiaStatus = `<span style="color:#c0392b;font-weight:bold;">Garantia expirada</span>`;
+          }
+        }
+        encontrados.push(`<div class="servico">
+          <b>${s.cliente}</b> | ${s.local} <br>
+          ${s.marca} ${s.modelo} - ${s.tipo} <br>
+          Realizado em: ${dataParaBR(s.dataServico)} | Garantia até: ${dataExpiracao||'-'}<br>
+          ${garantiaStatus ? garantiaStatus+"<br>" : ""}
+          <b>Código:</b> <span class="codigo-exibido">${s.codigo || 'Não gerado'}</span>
+        </div>`);
+      }
+    }
+  } else if (tipo === "pedidos") {
+    for (let id in pedidosSalvos) {
+      const p = pedidosSalvos[id];
+      if (
+        (p.marca || "").toLowerCase().includes(termo) ||
+        (p.modelo || "").toLowerCase().includes(termo) ||
+        (p.peca || "").toLowerCase().includes(termo) ||
+        (p.loja || "").toLowerCase().includes(termo) ||
+        (p.codigo || "").toLowerCase().includes(termo)
+      ) {
+        encontrados.push(`<div class="pedido">
+          <b>${p.loja}</b> | ${dataParaBR(p.data)} <br>
+          ${p.marca} ${p.modelo} - ${p.peca} (Qtd: ${p.quantidade})<br>
+          <b>Código:</b> <span class="codigo-exibido">${p.codigo || 'Não gerado'}</span>
+        </div>`);
+      }
+    }
+  } else if (tipo === "diagnostico") {
+    for (let id in diagnosticoSalvos) {
+      const d = diagnosticoSalvos[id];
+      if (
+        (d.cliente || "").toLowerCase().includes(termo) ||
+        (d.marca || "").toLowerCase().includes(termo) ||
+        (d.modelo || "").toLowerCase().includes(termo) ||
+        (d.problema || "").toLowerCase().includes(termo) ||
+        (d.codigo || "").toLowerCase().includes(termo)
+      ) {
+        encontrados.push(`<div class="pedido">
+          <b>${d.cliente}</b> | ${d.marca} ${d.modelo}<br>
+          <b>Problema:</b> ${d.problema}<br>
+          <b>Código:</b> <span class="codigo-exibido">${d.codigo || 'Não gerado'}</span>
+        </div>`);
+      }
+    }
+  } else if (tipo === "codigo") {
+    // Buscar em todos os códigos
+    for (let id in servicosSalvos) {
+      const s = servicosSalvos[id];
+      if ((s.codigo || "").toLowerCase() === termo) {
+        encontrados.push(`<div class="servico">
+          <b>${s.cliente}</b> | ${s.local}<br>
+          ${s.marca} ${s.modelo} - ${s.tipo}<br>
+          <b>Código:</b> <span class="codigo-exibido">${s.codigo}</span>
+        </div>`);
+      }
+    }
+    for (let id in pedidosSalvos) {
+      const p = pedidosSalvos[id];
+      if ((p.codigo || "").toLowerCase() === termo) {
+        encontrados.push(`<div class="pedido">
+          <b>${p.loja}</b> | ${dataParaBR(p.data)}<br>
+          ${p.marca} ${p.modelo} - ${p.peca} (Qtd: ${p.quantidade})<br>
+          <b>Código:</b> <span class="codigo-exibido">${p.codigo}</span>
+        </div>`);
+      }
+    }
+    for (let id in diagnosticoSalvos) {
+      const d = diagnosticoSalvos[id];
+      if ((d.codigo || "").toLowerCase() === termo) {
+        encontrados.push(`<div class="pedido">
+          <b>${d.cliente}</b> | ${d.marca} ${d.modelo}<br>
+          <b>Problema:</b> ${d.problema}<br>
+          <b>Código:</b> <span class="codigo-exibido">${d.codigo}</span>
+        </div>`);
+      }
+    }
+  }
+  if (encontrados.length === 0) {
+    resultadosDiv.innerHTML = "<i>Nenhum resultado encontrado.</i>";
+  } else {
+    resultadosDiv.innerHTML = `<b>${encontrados.length} resultado(s):</b><br>` + encontrados.join("");
+  }
+};
+window.gerarComprovantePDF = function(id) {
+  const s = servicosSalvos[id];
+  if (!s) return alert("Serviço não encontrado!");
+
+  const logoUrl = "https://topcell.ct.ws/topcell.jpg";
+  const doc = new window.jspdf.jsPDF("p", "mm", "A4");
+
+  fetch(logoUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const logoDataUrl = reader.result;
+
+        doc.setFillColor(245, 247, 250);
+        doc.rect(0, 0, 210, 297, "F");
+        doc.setDrawColor(0,0,0);
+        doc.setLineWidth(3);
+        doc.line(0, 23, 210, 23);
+
+        doc.addImage(logoDataUrl, 'JPEG', 22, 14, 27, 27);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(0,0,0);
+        doc.text("Comprovante de Serviço", 105, 35, { align: "center" });
+
+        let y = 50;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(90,90,90);
+        doc.text("Cliente:", 30, y);
+        doc.text("Marca:", 30, y+10);
+        doc.text("Modelo:", 30, y+20);
+        doc.text("Tipo de Serviço:", 30, y+30);
+        doc.text("Data do Serviço:", 30, y+40);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0,0,0);
+        doc.text(s.cliente, 80, y);
+        doc.text(s.marca, 80, y+10);
+        doc.text(s.modelo, 80, y+20);
+        doc.text(s.tipo, 80, y+30);
+        doc.text(dataParaBR(s.dataServico), 80, y+40);
+
+        y += 60;
+        doc.setDrawColor(0,0,0);
+        doc.setFillColor(230, 230, 230);
+        doc.roundedRect(25, y, 160, 36, 6, 6, "FD");
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0,0,0);
+        doc.text("CÓDIGO PARA CONSULTA", 105, y+10, { align: "center" });
+        doc.setFont("courier", "bold");
+        doc.setFontSize(26);
+        doc.setTextColor(20,20,20);
+        doc.text(s.codigo || "-", 105, y+29, { align: "center" });
+
+        doc.setDrawColor(0,0,0);
+        doc.setLineWidth(1.2);
+        doc.line(35, y+45, 175, y+45);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(130,130,130);
+        doc.text("Guarde este comprovante. Para consultar o status do serviço, acesse nosso portal.", 105, 270, { align: "center" });
+        doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 105, 280, { align: "center" });
+        doc.text("TopCell - Assistência Técnica", 105, 289, { align: "center" });
+
+        doc.save(`comprovante-servico-${s.codigo || id}.pdf`);
+      };
+      reader.readAsDataURL(blob);
+    });
+}
+window.gerarPedidosPDF = function () {
+  const logoUrl = "https://topcell.ct.ws/topcell.jpg";
+  const dataFiltro = document.getElementById("filtroDataPedidos")?.value || getHoje();
+
+  const pedidosDoDia = Object.values(pedidosSalvos).filter(
+    p => p.data === dataFiltro
+  );
+  if (pedidosDoDia.length === 0) {
+    alert("Nenhum pedido para a data selecionada.");
+    return;
+  }
+
+  const doc = new window.jspdf.jsPDF("p", "mm", "A4");
+  fetch(logoUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const logoDataUrl = reader.result;
+
+        doc.setFillColor(245, 247, 250);
+        doc.rect(0, 0, 210, 297, "F");
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(3);
+        doc.line(0, 23, 210, 23);
+
+        doc.addImage(logoDataUrl, 'JPEG', 22, 14, 27, 27);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(0,0,0);
+        doc.text("Pedido de Peças", 105, 35, { align: "center" });
+
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Data: ${dataParaBR(dataFiltro)}`, 105, 45, { align: "center" });
+
+        const columns = [
+          { header: "Loja", dataKey: "loja" },
+          { header: "Marca", dataKey: "marca" },
+          { header: "Modelo", dataKey: "modelo" },
+          { header: "Peça", dataKey: "peca" },
+          { header: "Qtd.", dataKey: "quantidade" }
+        ];
+        const rows = pedidosDoDia.map(p => ({
+          loja: p.loja,
+          marca: p.marca,
+          modelo: p.modelo,
+          peca: p.peca,
+          quantidade: p.quantidade
+        }));
+
+        doc.autoTable({
+          head: [columns.map(col => col.header)],
+          body: rows.map(row => columns.map(col => row[col.dataKey])),
+          startY: 58,
+          headStyles: { fillColor: [0,0,0], textColor: [255,255,255], halign: 'center' },
+          bodyStyles: { halign: 'center', fontSize: 11 },
+          styles: { cellPadding: 2, font: "helvetica" },
+          margin: { left: 14, right: 14 },
+        });
+
+        doc.setFontSize(10);
+        doc.setTextColor(130, 130, 130);
+        doc.text("Pedido gerado via TopCell", 105, 285, { align: "center" });
+
+        doc.save(`pedido-pecas-${dataParaBR(dataFiltro)}.pdf`);
+      };
+      reader.readAsDataURL(blob);
+    });
+};
+
+// Função para gerar códigos curtos e únicos
+function gerarCodigoCurto(prefixo = '') {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let codigo = '';
+  for (let i = 0; i < 6; i++) codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+  return prefixo + codigo;
+}
+
+window.atualizarBotaoPendencias = function() {
+  let temPendencia = false;
+  for (let id in servicosSalvos) {
+    if (servicosSalvos[id].status !== "concluido") { temPendencia = true; break; }
+  }
+  if (!temPendencia) {
+    for (let id in diagnosticoSalvos) {
+      if (diagnosticoSalvos[id].status !== "concluido") { temPendencia = true; break; }
+    }
+  }
+  const btn = document.getElementById("btnPendencias");
+  if (!btn) return;
+  if (temPendencia) {
+    btn.style.background = "#c0392b";
+    btn.style.color = "#fff";
+  } else {
+    btn.style.background = "#27ae60";
+    btn.style.color = "#fff";
+  }
+};
+
+window.abrirPendenciasMenu = function() {
+  document.getElementById("home").style.display = "none";
+  document.getElementById("menuPendencias").style.display = "block";
+  window.preencherPendenciasMenu();
+};
+
+window.fecharPendenciasMenu = function() {
+  document.getElementById("menuPendencias").style.display = "none";
+  document.getElementById("home").style.display = "block";
+  window.atualizarBotaoPendencias();
+};
+
+window.preencherPendenciasMenu = function() {
+  const pendencias = [];
+  for (let id in servicosSalvos) {
+    const s = servicosSalvos[id];
+    if (s.status !== "concluido") {
+      pendencias.push({
+        tipo: "Serviço",
+        cliente: s.cliente,
+        marca: s.marca,
+        modelo: s.modelo,
+        detalhe: s.tipo,
+        local: s.local,
+        data: dataParaBR(s.dataServico),
+        codigo: s.codigo || '-'
+      });
+    }
+  }
+  for (let id in diagnosticoSalvos) {
+    const d = diagnosticoSalvos[id];
+    if (d.status !== "concluido") {
+      pendencias.push({
+        tipo: "Diagnóstico",
+        cliente: d.cliente,
+        marca: d.marca,
+        modelo: d.modelo,
+        detalhe: d.problema,
+        local: d.loja,
+        data: dataParaBR(d.dataCadastro),
+        codigo: d.codigo || '-'
+      });
+    }
+  }
+  let html = "";
+  if (pendencias.length === 0) {
+    html = "<i>Nenhuma pendência encontrada!</i>";
+  } else {
+    html = `<b>${pendencias.length} pendência(s):</b><br>`;
+    pendencias.forEach(p => {
+      html += `<div style="background:#faf6f6;border:1px solid #ffeaea;border-radius:7px;padding:9px 12px;margin:10px 0;">
+        <b>${p.tipo}:</b> <b>${p.cliente}</b> | ${p.local}<br>
+        ${p.marca} ${p.modelo} - ${p.detalhe}<br>
+        <b>Data:</b> ${p.data} | <b>Código:</b> <span class="codigo-exibido">${p.codigo}</span>
+      </div>`;
+    });
+  }
+  document.getElementById("pendenciasConteudo").innerHTML = html;
+};
+
+window.exportarPendenciasPDF = function() {
+  const pendencias = [];
+  for (let id in servicosSalvos) {
+    const s = servicosSalvos[id];
+    if (s.status !== "concluido") {
+      pendencias.push({
+        tipo: "Serviço",
+        cliente: s.cliente,
+        marca: s.marca,
+        modelo: s.modelo,
+        detalhe: s.tipo,
+        local: s.local,
+        data: dataParaBR(s.dataServico),
+        codigo: s.codigo || '-'
+      });
+    }
+  }
+  for (let id in diagnosticoSalvos) {
+    const d = diagnosticoSalvos[id];
+    if (d.status !== "concluido") {
+      pendencias.push({
+        tipo: "Diagnóstico",
+        cliente: d.cliente,
+        marca: d.marca,
+        modelo: d.modelo,
+        detalhe: d.problema,
+        local: d.loja,
+        data: dataParaBR(d.dataCadastro),
+        codigo: d.codigo || '-'
+      });
+    }
+  }
+  if (pendencias.length === 0) {
+    alert("Nenhuma pendência para exportar!");
+    return;
+  }
+  const logoUrl = "https://topcell.ct.ws/topcell.jpg";
+  const doc = new window.jspdf.jsPDF("p", "mm", "A4");
+  fetch(logoUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const logoDataUrl = reader.result;
+        doc.setFillColor(245, 247, 250);
+        doc.rect(0, 0, 210, 297, "F");
+        doc.setDrawColor(0,0,0);
+        doc.setLineWidth(3);
+        doc.line(0, 23, 210, 23);
+        doc.addImage(logoDataUrl, 'JPEG', 22, 14, 27, 27);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(192,57,43);
+        doc.text("Pendências", 105, 35, { align: "center" });
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0,0,0);
+        doc.text(`Data de geração: ${new Date().toLocaleDateString("pt-BR")}`, 105, 45, { align: "center" });
+        const columns = [
+          { header: "Tipo", dataKey: "tipo" },
+          { header: "Cliente", dataKey: "cliente" },
+          { header: "Marca", dataKey: "marca" },
+          { header: "Modelo", dataKey: "modelo" },
+          { header: "Detalhe", dataKey: "detalhe" },
+          { header: "Local", dataKey: "local" },
+          { header: "Data", dataKey: "data" },
+          { header: "Código", dataKey: "codigo" }
+        ];
+        const rows = pendencias.map(p => ({
+          tipo: p.tipo,
+          cliente: p.cliente,
+          marca: p.marca,
+          modelo: p.modelo,
+          detalhe: p.detalhe,
+          local: p.local,
+          data: p.data,
+          codigo: p.codigo
+        }));
+        doc.autoTable({
+          head: [columns.map(col => col.header)],
+          body: rows.map(row => columns.map(col => row[col.dataKey])),
+          startY: 58,
+          headStyles: { fillColor: [192,57,43], textColor: [255,255,255], halign: 'center' },
+          bodyStyles: { halign: 'center', fontSize: 10 },
+          styles: { cellPadding: 2, font: "helvetica" },
+          margin: { left: 8, right: 8 },
+        });
+        doc.setFontSize(10);
+        doc.setTextColor(130, 130, 130);
+        doc.text("Relatório gerado via TopCell", 105, 285, { align: "center" });
+        doc.save(`pendencias-${new Date().toLocaleDateString("pt-BR")}.pdf`);
+      };
+      reader.readAsDataURL(blob);
+    });
+};
+window.gerarDiagnosticoPDF = function(id) {
+  const d = diagnosticoSalvos[id];
+  if (!d) return alert("Diagnóstico não encontrado!");
+  const logoUrl = "https://topcell.ct.ws/topcell.jpg";
+  const doc = new window.jspdf.jsPDF("p", "mm", "A4");
+
+  fetch(logoUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const logoDataUrl = reader.result;
+        doc.setFillColor(245, 247, 250);
+        doc.rect(0, 0, 210, 297, "F");
+        doc.addImage(logoDataUrl, 'JPEG', 22, 14, 27, 27);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(0,0,0);
+        doc.text("Diagnóstico de Aparelho", 105, 35, { align: "center" });
+
+        let y = 55;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Cliente:", 30, y);
+        doc.text("Marca:", 30, y+10);
+        doc.text("Modelo:", 30, y+20);
+        doc.text("Problema:", 30, y+30);
+        doc.text("Diagnóstico:", 30, y+40);
+        doc.text("Peças:", 30, y+50);
+        doc.text("Valor:", 30, y+60);
+        doc.text("Código:", 30, y+70);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0,0,0);
+        doc.text(d.cliente, 75, y);
+        doc.text(d.marca, 75, y+10);
+        doc.text(d.modelo, 75, y+20);
+        doc.text(d.problema, 75, y+30);
+        doc.text(d.diagnostico || '-', 75, y+40);
+        doc.text(d.pecas || '-', 75, y+50);
+        doc.text(`R$ ${d.valor ? Number(d.valor).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '-'}`, 75, y+60);
+        doc.setFont("courier", "bold");
+        doc.setFontSize(18);
+        doc.text(d.codigo, 75, y+70);
+
+        // Indicação do site para consulta
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.textWithLink("Acompanhe o diagnóstico pelo site:", 30, y+85, { url: "https://topcell.ct.ws/cliente.html" });
+        doc.setTextColor(0, 102, 204);
+        doc.text("https://topcell.ct.ws/cliente.html", 30, y+92);
+
+        doc.setTextColor(130,130,130);
+        doc.setFontSize(10);
+        doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 105, 285, { align: "center" });
+        doc.text("TopCell - Assistência Técnica", 105, 292, { align: "center" });
+
+        doc.save(`diagnostico-${d.codigo || id}.pdf`);
+      };
+      reader.readAsDataURL(blob);
+    });
+}
+var celularesSalvos = {};
+var celularEditandoId = null;
+
+window.salvarCelular = function() {
+  var marca = document.getElementById("celMarca").value.trim();
+  var modelo = document.getElementById("celModelo").value.trim();
+  var valor = parseFloat(document.getElementById("celValor").value);
+  var info = document.getElementById("celInfo").value.trim();
+  var foto = document.getElementById("celFoto").value.trim();
+  var id = document.getElementById("celId").value;
+  if (!marca || !modelo || isNaN(valor) || !info || !foto) {
+    alert("Preencha todos os campos!"); return;
+  }
+  window.mostrarLoader && window.mostrarLoader();
+  if (id) {
+    update(ref(db, "catalogo_celulares/" + id), { marca: marca, modelo: modelo, valor: valor, info: info, foto: foto })
+      .then(function() {
+        alert("Celular atualizado!");
+        window.formCelularResetar();
+        window.carregarCelulares();
+      })
+      .catch(function(e) { alert("Erro: " + e.message); })
+      .finally(function() { window.esconderLoader && window.esconderLoader(); });
+  } else {
+    var novoRef = push(ref(db, "catalogo_celulares"));
+    set(novoRef, { marca: marca, modelo: modelo, valor: valor, info: info, foto: foto })
+      .then(function() {
+        alert("Celular adicionado ao catálogo!");
+        window.formCelularResetar();
+        window.carregarCelulares();
+      })
+      .catch(function(e) { alert("Erro: " + e.message); })
+      .finally(function() { window.esconderLoader && window.esconderLoader(); });
+  }
+};
+
+window.carregarCelulares = function() {
+  window.mostrarLoader && window.mostrarLoader();
+  onValue(ref(db, "catalogo_celulares"), function(snapshot) {
+    celularesSalvos = snapshot.val() || {};
+    window.mostrarCelularesLista();
+    window.esconderLoader && window.esconderLoader();
+  }, function(err) { alert("Erro ao carregar: "+err.message); window.esconderLoader && window.esconderLoader(); });
+};
+
+window.mostrarCelularesLista = function() {
+  var div = document.getElementById("listaCelulares");
+  div.innerHTML = "";
+  if (!celularesSalvos || Object.keys(celularesSalvos).length === 0) {
+    div.innerHTML = "<i>Nenhum celular cadastrado.</i>";
+    return;
+  }
+  var arr = [];
+  for (var id in celularesSalvos) {
+    arr.push([id, celularesSalvos[id]]);
+  }
+  arr.reverse().forEach(function(par) {
+    var id = par[0];
+    var cel = par[1];
+    var statusVendido = cel.vendido ? 
+      `<span style="color:#27ae60;font-weight:bold;">Vendido</span>` : 
+      `<span style="color:#c0392b;">Disponível</span>`;
+    // Garantia
+    let garantiaStatus = "";
+    let dataExpiracao = "";
+    if (cel.vendido && cel.dataVenda) {
+      const dataVenda = new Date(cel.dataVenda + "T00:00:00");
+      const dataExp = new Date(dataVenda.getTime() + 90 * 24 * 60 * 60 * 1000);
+      dataExpiracao = dataParaBR(dataExp.toISOString().split("T")[0]);
+      const hoje = new Date();
+      hoje.setHours(0,0,0,0);
+      dataExp.setHours(0,0,0,0);
+      if (dataExp >= hoje) {
+        garantiaStatus = `<span style="color:green;font-weight:bold;">Garantia vigente</span> (até ${dataExpiracao})`;
+      } else {
+        garantiaStatus = `<span style="color:#c0392b;font-weight:bold;">Garantia expirada</span> (até ${dataExpiracao})`;
+      }
+    }
+    // Dados do comprador
+    let dadosComprador = "";
+    if (cel.vendido) {
+      dadosComprador = `<br><b>Comprador:</b> ${cel.compradorNome || "-"}
+    <br><b>CPF:</b> ${cel.compradorCPF || "-"}
+    <br><b>Data da venda:</b> ${cel.dataVenda ? dataParaBR(cel.dataVenda) : "-"}
+    <br><b>Código:</b> <span class="codigo-exibido">${cel.codigoVenda || "-"}</span>
+  `;
+    }
+    // Botões
+    var btns = `
+      <button class="btn-peq pequeno" onclick="editarCelular('${id}')">✏️</button>
+      <button class="btn-peq pequeno" onclick="apagarCelular('${id}')">🗑️</button>
+    `;
+    if (!cel.vendido) {
+  btns += `<button class="btn-peq pequeno" onclick="abrirModalVendaCelular('${id}')" title="Marcar como Vendido">🛒</button>`;
+    } else {
+ btns += `<button class="btn-peq pequeno" onclick="gerarComprovanteVendaPDF('${id}')" title="Comprovante de venda">🧾</button>`;
+    }
+    div.innerHTML +=
+      `<div style="background:#f9f9f9;border:1px solid #eee;border-radius:7px;padding:10px;margin-bottom:10px;position:relative;display:flex;gap:10px;align-items:center;">
+        <img src="${cel.foto}" alt="" style="width:55px;height:80px;object-fit:contain;border-radius:6px;">
+        <div style="flex:1;">
+          <b>${cel.marca} ${cel.modelo}</b><br>
+          <b>Valor:</b> R$ ${cel.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}<br>
+          <span style="font-size:0.97em;color:#444;">${cel.info}</span><br>
+          ${statusVendido}<br>
+          ${garantiaStatus ? garantiaStatus+"<br>" : ""}
+          ${dadosComprador}
+          ${btns}
+        </div>
+      </div>`;
+  });
+};
+
+
+window.editarCelular = function(id) {
+  var cel = celularesSalvos[id];
+  if (!cel) return;
+  document.getElementById("celId").value = id;
+  document.getElementById("celMarca").value = cel.marca;
+  document.getElementById("celModelo").value = cel.modelo;
+  document.getElementById("celValor").value = cel.valor;
+  document.getElementById("celInfo").value = cel.info;
+  document.getElementById("celFoto").value = cel.foto;
+  window.scrollTo(0, document.getElementById("formCelular").offsetTop - 20);
+};
+
+window.apagarCelular = function(id) {
+  if (confirm("Deseja mesmo excluir este celular?")) {
+    window.mostrarLoader && window.mostrarLoader();
+    remove(ref(db, "catalogo_celulares/" + id))
+      .then(function() { window.carregarCelulares(); window.formCelularResetar(); })
+      .catch(function(e) { alert("Erro ao apagar: " + e.message); })
+      .finally(function() { window.esconderLoader && window.esconderLoader(); });
+  }
+};
+
+window.formCelularResetar = function() {
+  document.getElementById("formCelular").reset();
+  document.getElementById("celId").value = "";
+};
+
+// ATUALIZE mostrarArea:
+const _mostrarAreaAntiga = window.mostrarArea;
+window.mostrarArea = function(area) {
+  document.getElementById("home").style.display = area === "home" ? "block" : "none";
+  document.getElementById("pedidos").style.display = area === "pedidos" ? "block" : "none";
+  document.getElementById("servicos").style.display = area === "servicos" ? "block" : "none";
+  document.getElementById("diagnostico").style.display = area === "diagnostico" ? "block" : "none";
+  document.getElementById("buscar").style.display = area === "buscar" ? "block" : "none";
+  document.getElementById("catalogo").style.display = area === "catalogo" ? "block" : "none";
+  document.getElementById("menuPendencias").style.display = "none";
+  document.getElementById("ceo").style.display = area === "ceo" ? "block" : "none";
+  if(area === "pedidos") carregarPedidos && carregarPedidos();
+  if(area === "servicos") carregarServicos && carregarServicos();
+  if(area === "diagnostico") carregarDiagnostico && carregarDiagnostico();
+  if(area === "home") atualizarHome && atualizarHome();
+  if(area === "buscar") {
+    document.getElementById("formBuscar") && document.getElementById("formBuscar").reset();
+    document.getElementById("resultadosBusca") && (document.getElementById("resultadosBusca").innerHTML = "");
+  }
+  if(area === "catalogo") window.carregarCelulares();
+  if(typeof _mostrarAreaAntiga === "function" && area !== "catalogo") _mostrarAreaAntiga(area);
+};
+window.gerarComprovanteVendaPDF = function(id) {
+  var cel = celularesSalvos[id];
+  if (!cel || !cel.vendido) { alert("Celular não vendido!"); return; }
+
+  var doc = new window.jspdf.jsPDF("p", "mm", "A4");
+  var dataVendaBR = cel.dataVenda ? dataParaBR(cel.dataVenda) : dataParaBR(getHoje());
+  var codigo = cel.codigoVenda || "V-XXXXX";
+  var nome = cel.compradorNome || "-";
+  var cpf = cel.compradorCPF || "-";
+
+  doc.setFillColor(245, 247, 250);
+  doc.rect(0, 0, 210, 297, "F");
+  doc.setDrawColor(0,0,0);
+  doc.setLineWidth(3);
+  doc.line(0, 23, 210, 23);
+
+  doc.addImage("https://topcell.ct.ws/topcell.jpg", 'JPEG', 22, 14, 27, 27);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(0,0,0);
+  doc.text("Comprovante de Venda", 105, 35, { align: "center" });
+
+  var y = 52;
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0,0,0);
+  doc.text("Aparelho:", 32, y);
+  doc.text("Marca:", 32, y+10);
+  doc.text("Modelo:", 32, y+20);
+  doc.text("Valor:", 32, y+30);
+  doc.text("Informações:", 32, y+40);
+  doc.text("Data da Venda:", 32, y+50);
+  doc.text("Código:", 32, y+60);
+  doc.text("Comprador:", 32, y+70);
+  doc.text("CPF:", 32, y+80);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0,0,0);
+  doc.text("Celular", 75, y);
+  doc.text(cel.marca || "-", 75, y+10);
+  doc.text(cel.modelo || "-", 75, y+20);
+  doc.text("R$ " + (cel.valor ? Number(cel.valor).toLocaleString('pt-BR', {minimumFractionDigits:2}) : "-"), 75, y+30);
+  doc.text(cel.info || "-", 75, y+40);
+  doc.text(dataVendaBR, 75, y+50);
+  doc.setFont("courier", "bold");
+  doc.setFontSize(22);
+  doc.text(codigo, 75, y+60);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(13);
+  doc.text(nome, 75, y+70);
+  doc.text(cpf, 75, y+80);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(130,130,130);
+  doc.text("Guarde este comprovante. Código de venda único.", 105, 270, { align: "center" });
+  doc.text("Gerado em: " + (new Date()).toLocaleString("pt-BR"), 105, 282, { align: "center" });
+  doc.text("TopCell - Assistência Técnica", 105, 290, { align: "center" });
+
+  doc.save("comprovante-venda-" + codigo + ".pdf");
+};
+window.marcarComoVendido = function(id) {
+  if (!celularesSalvos[id]) return;
+  if (!confirm("Deseja marcar este celular como vendido?")) return;
+  var codigoVenda = gerarCodigoCurto('V-');
+  update(ref(db, "catalogo_celulares/" + id), { vendido: true, codigoVenda: codigoVenda, dataVenda: getHoje() })
+    .then(function() {
+      alert("Celular marcado como vendido! Agora é possível gerar o comprovante.");
+      window.carregarCelulares();
+    })
+    .catch(function(e) { alert("Erro ao marcar como vendido: " + e.message); });
+};
+window.abrirModalVendaCelular = function(id) {
+  document.getElementById("formVendaCelular").reset();
+  document.getElementById("vendaCelId").value = id;
+  document.getElementById("vendaData").value = getHoje();
+  document.getElementById("modalVendaCelular").style.display = "flex";
+}
+window.fecharModalVendaCelular = function() {
+  document.getElementById("modalVendaCelular").style.display = "none";
+}
+window.salvarVendaCelular = function() {
+  const id = document.getElementById("vendaCelId").value;
+  const nome = document.getElementById("vendaNome").value.trim();
+  const cpf = document.getElementById("vendaCPF").value.trim();
+  const dataVenda = document.getElementById("vendaData").value;
+  if (!id || !nome || !cpf || !dataVenda) {
+    alert("Preencha todos os campos!");
+    return;
+  }
+  const codigoVenda = gerarCodigoCurto('V-');
+  update(ref(db, "catalogo_celulares/" + id), {
+    vendido: true,
+    codigoVenda: codigoVenda,
+    dataVenda: dataVenda,
+    compradorNome: nome,
+    compradorCPF: cpf
+  })
+    .then(function() {
+      alert("Celular marcado como vendido! Agora é possível gerar o comprovante.");
+      window.carregarCelulares();
+      fecharModalVendaCelular();
+    })
+    .catch(function(e) { alert("Erro ao marcar como vendido: " + e.message); });
+}
+
+window.carregarUsuariosCEO = function() {
+  const dbRef = ref(db, "usuarios");
+  get(dbRef).then((snapshot) => {
+    const usuarios = snapshot.val() || {};
+    let html = `<table style="width:100%;border-collapse:collapse;font-size:0.97em;">
+      <tr>
+        <th>Nome</th>
+        <th>Função</th>
+        <th>Loja</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>`;
+    for (let uid in usuarios) {
+      const u = usuarios[uid];
+
+      // Botão bloquear/desbloquear (não para CEO)
+      let bloquearBtn = '';
+      if (u.funcao !== "CEO") {
+        if (u.bloqueado) {
+          bloquearBtn = `<button onclick="window.bloquearUsuario('${uid}', false)" title="Desbloquear" style="font-size:0.90em;padding:2px 6px;background:#229954;color:#fff;border:none;border-radius:4px;cursor:pointer;">Desbloquear</button>`;
+        } else {
+          bloquearBtn = `<button onclick="window.bloquearUsuario('${uid}', true)" title="Bloquear" style="font-size:0.90em;padding:2px 6px;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;">Bloquear</button>`;
+        }
+      }
+
+      // Botão editar
+      let editarBtn = `<button onclick="window.mostrarFormularioEditarUsuario('${uid}')" title="Editar usuário" style="font-size:0.90em;padding:2px 7px;background:#2980b9;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:3px;">Editar</button>`;
+
+      html += `<tr>
+        <td style="cursor:pointer;color:#2980b9;text-decoration:underline;" onclick="window.mostrarHistoricoUsuario('${uid}')">${u.nome || "(sem nome)"}</td>
+        <td>${u.funcao || "-"}</td>
+        <td>${u.loja || "-"}</td>
+        <td>${u.bloqueado ? "<span style='color:#c0392b;'>Bloqueado</span>" : "<span style='color:#229954;'>Ativo</span>"}</td>
+        <td>
+          ${editarBtn}
+          ${bloquearBtn}
+        </td>
+      </tr>`;
+    }
+    html += "</table>";
+    document.getElementById("listaUsuariosCEO").innerHTML = html;
+  });
+};
+
+// Apagar usuário (já menor e discreto)
+window.apagarUsuario = function(uid) {
+  if (!confirm("Deseja realmente apagar este usuário?")) return;
+  remove(ref(db, "usuarios/" + uid)).then(() => {
+    alert("Usuário apagado!");
+    window.carregarUsuariosCEO();
+  });
+};
+
+// Bloquear/desbloquear usuário (exceto CEOs)
+window.bloquearUsuario = function(uid, bloquear) {
+  update(ref(db, "usuarios/" + uid), { bloqueado: bloquear }).then(() => {
+    alert(bloquear ? "Usuário bloqueado!" : "Usuário desbloqueado!");
+    window.carregarUsuariosCEO();
+  });
+};
+
+
+
+window.alterarFuncaoUsuario = function(uid, novaFuncao) {
+  if (!confirm("Tem certeza que deseja mudar a função deste usuário?")) return;
+  update(ref(db, "usuarios/" + uid), { funcao: novaFuncao }).then(() => {
+    alert("Função alterada!");
+    window.carregarUsuariosCEO();
+  });
+};
+
+window.apagarUsuario = function(uid) {
+  if (!confirm("Deseja realmente apagar este usuário?")) return;
+  remove(ref(db, "usuarios/" + uid)).then(() => {
+    alert("Usuário apagado!");
+    window.carregarUsuariosCEO();
+  });
+};
+
+window.mostrarHistoricoUsuario = function(uid) {
+  get(ref(db, "usuarios/" + uid + "/historico_login")).then(snapshot => {
+    const historico = snapshot.val() || [];
+    let html = "<h3>Histórico de login</h3>";
+    if (!historico.length) html += "<i>Sem histórico de login registrado</i>";
+    else {
+      html += "<ul style='max-height:200px;overflow-y:auto;'>";
+      historico.slice().reverse().forEach(h =>
+        html += `<li><b>${h.data || ""}</b> - IP: ${h.ip || "Sem IP"}</li>`
+      );
+      html += "</ul>";
+    }
+    html += `<button onclick="window.fecharHistoricoUsuario()">Fechar</button>`;
+    const histDiv = document.getElementById("historicoUsuario");
+    histDiv.innerHTML = html;
+    histDiv.style.display = "block";
+  });
+};
+window.fecharHistoricoUsuario = function() {
+  document.getElementById("historicoUsuario").style.display = "none";
+};
+// --- Exemplo de como registrar ações no histórico do usuário ---
+window.registrarAcao = function(uid, acao) {
+  push(ref(db, "usuarios/" + uid + "/historico"), {
+    data: (new Date()).toLocaleString("pt-BR"),
+    acao: acao
+  });
+};
+
+window.mostrarFormularioCriarUsuario = function() {
+  const div = document.getElementById("formularioCriarUsuario");
+  div.innerHTML = `
+    <h3>Criar novo usuário</h3>
+    <label>Nome: <input type="text" id="novoNome"></label><br>
+    <label>E-mail: <input type="email" id="novoEmail"></label><br>
+    <label>Senha: <input type="password" id="novaSenha"></label><br>
+    <label>Função: <input type="text" id="novaFuncao" placeholder="Ex: Gerente"></label><br>
+    <label>Loja: <input type="text" id="novaLoja"></label><br>
+    <button onclick="window.criarUsuarioNoSistema()" style="margin-top:8px;">Criar</button>
+    <button onclick="window.fecharFormularioCriarUsuario()" style="margin-top:8px;">Cancelar</button>
+  `;
+  div.style.display = "block";
+};
+window.fecharFormularioCriarUsuario = function() {
+  document.getElementById("formularioCriarUsuario").style.display = "none";
+};
+window.criarUsuarioNoSistema = function() {
+  const nome = document.getElementById("novoNome").value.trim();
+  const email = document.getElementById("novoEmail").value.trim();
+  const senha = document.getElementById("novaSenha").value;
+  const funcao = document.getElementById("novaFuncao").value.trim();
+  const loja = document.getElementById("novaLoja").value.trim();
+
+  if (!nome || !email || !senha || !funcao) {
+    alert("Preencha todos os campos obrigatórios!");
+    return;
+  }
+  // Cria o usuário na autenticação e no realtime DB
+  createUserWithEmailAndPassword(auth, email, senha)
+    .then((userCredential) => {
+      const user = userCredential.user;
+      set(ref(db, "usuarios/" + user.uid), {
+        nome,
+        funcao,
+        loja,
+        email,
+        bloqueado: false
+      }).then(() => {
+        alert("Usuário criado com sucesso!");
+        window.fecharFormularioCriarUsuario();
+        window.carregarUsuariosCEO();
+      });
+    })
+    .catch((error) => {
+      alert("Erro ao criar usuário: " + error.message);
+    });
+};
+
+// ----------- FORMULÁRIO DE EDITAR USUÁRIO -----------
+window.mostrarFormularioEditarUsuario = function(uid) {
+  get(ref(db, "usuarios/" + uid)).then(snapshot => {
+    const user = snapshot.val();
+    if (!user) {
+      alert("Usuário não encontrado!");
+      return;
+    }
+    const div = document.getElementById("formularioEditarUsuario");
+    div.innerHTML = `
+      <h3>Editar usuário</h3>
+      <label>Nome: <input type="text" id="editNome" value="${user.nome || ""}"></label><br>
+      <label>Função: <input type="text" id="editFuncao" value="${user.funcao || ""}"></label><br>
+      <label>Loja: <input type="text" id="editLoja" value="${user.loja || ""}"></label><br>
+      <label>Senha nova: <input type="password" id="editSenha" placeholder="(deixe em branco para não alterar)"></label><br>
+      <button onclick="window.salvarEdicaoUsuario('${uid}', '${user.email || ''}')">Salvar alterações</button>
+      <button onclick="window.fecharFormularioEditarUsuario()">Cancelar</button>
+    `;
+    div.style.display = "block";
+  });
+};
+window.fecharFormularioEditarUsuario = function() {
+  document.getElementById("formularioEditarUsuario").style.display = "none";
+};
+
+window.salvarEdicaoUsuario = function(uid, email) {
+  const nome = document.getElementById("editNome").value.trim();
+  const funcao = document.getElementById("editFuncao").value.trim();
+  const loja = document.getElementById("editLoja").value.trim();
+  const senha = document.getElementById("editSenha").value;
+
+  if (!nome || !funcao) {
+    alert("Preencha os campos obrigatórios!");
+    return;
+  }
+
+  update(ref(db, "usuarios/" + uid), {
+    nome,
+    funcao,
+    loja
+  }).then(() => {
+    // Atualiza senha se fornecida (precisa ser pelo Auth)
+    if (senha && senha.length >= 6) {
+      // Só um admin autenticado pode alterar senha de outro usuário via Admin SDK (não é possível direto pelo client JS)
+      // Portanto, aqui apenas alerta a impossibilidade e orienta usar painel Admin, ou crie endpoint no backend.
+      alert("A senha só pode ser alterada por um administrador através do painel do Firebase ou backend próprio.");
+    }
+    alert("Usuário atualizado!");
+    window.fecharFormularioEditarUsuario();
+    window.carregarUsuariosCEO();
+  });
+};
+// Função para limpar variáveis globais e listas DOM antes de exibir nova área
+window.limparEstado = function() {
+  // Limpa variáveis globais de cache
+  pedidosSalvos = {};
+  servicosSalvos = {};
+  diagnosticoSalvos = {};
+  // Limpa listas DOM
+  if(document.getElementById("listaPedidos")) document.getElementById("listaPedidos").innerHTML = "";
+  if(document.getElementById("listaServicos")) document.getElementById("listaServicos").innerHTML = "";
+  if(document.getElementById("listaDiagnostico")) document.getElementById("listaDiagnostico").innerHTML = "";
+  // Se quiser limpar outros campos/telas, adicione aqui
+};
+
+</script>
+</body>
+</html>
