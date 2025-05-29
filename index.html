@@ -529,6 +529,63 @@
 </div>
 </div>
 <script type="module">
+// Função para limpar completamente o estado e interface ao trocar/deslogar usuário
+window.limparEstado = function () {
+  usuarioLogado = { nome: "", funcao: "", loja: "" };
+  pedidoEditandoId = null;
+  pedidosSalvos = {};
+  servicosSalvos = {};
+  servicoEditandoId = null;
+  diagnosticoSalvos = {};
+  diagnosticoEditandoId = null;
+  // Limpa menus e nome
+  if (document.getElementById("menu")) document.getElementById("menu").innerHTML = "";
+  if (document.getElementById("nomeUsuario")) document.getElementById("nomeUsuario").textContent = "";
+  // Esconde todas as áreas sensíveis
+  ["home", "pedidos", "servicos", "diagnostico", "buscar", "ceo", "catalogo"].forEach(area => {
+    const el = document.getElementById(area);
+    if (el) el.style.display = "none";
+  });
+  // Limpa listas/dados dinâmicos
+  if (document.getElementById("listaPedidos")) document.getElementById("listaPedidos").innerHTML = "";
+  if (document.getElementById("listaServicos")) document.getElementById("listaServicos").innerHTML = "";
+  if (document.getElementById("listaDiagnostico")) document.getElementById("listaDiagnostico").innerHTML = "";
+  // Reseta formulários
+  if (document.getElementById("pedidoForm")) document.getElementById("pedidoForm").reset();
+  if (document.getElementById("formServico")) document.getElementById("formServico").reset();
+  if (document.getElementById("formDiagnostico")) document.getElementById("formDiagnostico").reset();
+};
+// Função para montar o menu baseado no usuário logado
+function montarMenuUsuario() {
+  const menu = document.getElementById("menu");
+  if (!menu) return;
+  menu.innerHTML = ""; // Limpa tudo
+  const botoes = [
+    { label: "Home", area: "home" },
+    { label: "Pedidos", area: "pedidos" },
+    { label: "Serviços", area: "servicos" },
+    { label: "Diagnóstico", area: "diagnostico" },
+    { label: "Buscar", area: "buscar" },
+    { label: "Catálogo", area: "catalogo", extra: { style:"font-size:21px;padding:10px 20px;" } }
+  ];
+  for (const b of botoes) {
+    const btn = document.createElement("button");
+    btn.innerText = b.label;
+    btn.onclick = () => window.mostrarArea(b.area);
+    if (b.extra) Object.assign(btn.style, b.extra);
+    menu.appendChild(btn);
+  }
+  if (usuarioLogado.funcao === "CEO") {
+    const btnCEO = document.createElement("button");
+    btnCEO.innerText = "👑";
+    btnCEO.title = "Área do CEO";
+    btnCEO.onclick = function() { window.mostrarArea('ceo'); window.abrirMenuCEO(); };
+    btnCEO.style.fontSize = "1.12em";
+    btnCEO.style.background = "#b7950b";
+    btnCEO.style.color = "#fff";
+    menu.appendChild(btnCEO);
+  }
+}
 // Função para formatar a data para o padrão brasileiro (DD/MM/AAAA)
 function dataParaBR(dataIso) {
   if (!dataIso || typeof dataIso !== "string") return "";
@@ -614,19 +671,16 @@ window.exibirCampoSenha = function() {
   document.getElementById("diagSenha").style.display = cb.checked ? "block" : "none";
 };
 window.fazerLogout = () => {
-window.limparEstado();  
-window.mostrarLoader();
+  window.limparEstado();
+  window.mostrarLoader();
   auth.signOut().then(() => {
-    // Limpa a interface e dados sensíveis
     document.getElementById("interface").style.display = "none";
     document.getElementById("login").style.display = "block";
     document.getElementById("usuario").value = "";
     document.getElementById("senha").value = "";
-    document.getElementById("nomeUsuario").textContent = "";
-
     // Remove listener de bloqueio, se existir
     if (window._bloqueioListener && typeof window._bloqueioListener === "function") {
-      window._bloqueioListener(); // Firebase retorna a função para remover o listener
+      window._bloqueioListener();
       window._bloqueioListener = null;
     }
   }).catch((error) => {
@@ -717,7 +771,7 @@ window.fazerLogin = () => {
           if (dados.bloqueado) {
             alert("Seu acesso está bloqueado. Fale com o administrador.");
             window.esconderLoader();
-            signOut(auth); // Desloga por segurança
+            signOut(auth);
             return;
           }
           usuarioLogado.nome = dados.nome || "Usuário";
@@ -744,37 +798,25 @@ window.fazerLogin = () => {
           });
 
         // Listener para bloqueio em tempo real
-        if (window._bloqueioListener) window._bloqueioListener(); // Remove antigo listener se existir
+        if (window._bloqueioListener) window._bloqueioListener();
         window._bloqueioListener = onValue(
           ref(db, "usuarios/" + uid + "/bloqueado"),
           (snapshot) => {
             if (snapshot.exists() && snapshot.val() === true) {
               alert("Seu acesso foi bloqueado pelo administrador.");
               signOut(auth).then(() => {
-                location.reload(); // Recarrega para garantir limpeza de interface
+                location.reload();
               });
             }
           }
         );
 
-        if (usuarioLogado.funcao === "CEO" && !document.getElementById("btnMenuCeo")) {
-          const menu = document.getElementById("menu");
-          const btn = document.createElement("button");
-          btn.id = "btnMenuCeo";
-          btn.innerHTML = '👑';
-          btn.title = "Área do CEO";
-          btn.onclick = function() {
-            window.mostrarArea('ceo');
-            window.abrirMenuCEO();
-          };
-          btn.style.fontSize = "1.12em";
-          btn.style.background = "#b7950b";
-          btn.style.color = "#fff";
-          menu.appendChild(btn);
-        }
-
+        // LIMPEZA E MONTAGEM DA INTERFACE DINÂMICA:
+        window.limparEstado();
         document.getElementById("login").style.display = "none";
         document.getElementById("interface").style.display = "block";
+        montarMenuUsuario();
+
         // Inicializar datas filtro
         if(document.getElementById("filtroDataPedidos")) document.getElementById("filtroDataPedidos").value = getHoje();
         if(document.getElementById("filtroDataServicos")) document.getElementById("filtroDataServicos").value = getHoje();
@@ -793,22 +835,26 @@ window.fazerLogin = () => {
     });
 };
 window.mostrarArea = (area) => {
-  window.limparEstado(); // Limpa tudo antes de mostrar qualquer área
-  document.getElementById("menuPendencias").style.display = "none";
-  document.getElementById("home").style.display = area === "home" ? "block" : "none";
-  document.getElementById("pedidos").style.display = area === "pedidos" ? "block" : "none";
-  document.getElementById("servicos").style.display = area === "servicos" ? "block" : "none";
-  document.getElementById("diagnostico").style.display = area === "diagnostico" ? "block" : "none";
-  document.getElementById("buscar").style.display = area === "buscar" ? "block" : "none";
-  document.getElementById("ceo").style.display = area === "ceo" ? "block" : "none";
+  window.limparEstado();
+  if (document.getElementById("menu")) montarMenuUsuario();
+  if (document.getElementById("menuPendencias")) document.getElementById("menuPendencias").style.display = "none";
+  if (document.getElementById("home")) document.getElementById("home").style.display = area === "home" ? "block" : "none";
+  if (document.getElementById("pedidos")) document.getElementById("pedidos").style.display = area === "pedidos" ? "block" : "none";
+  if (document.getElementById("servicos")) document.getElementById("servicos").style.display = area === "servicos" ? "block" : "none";
+  if (document.getElementById("diagnostico")) document.getElementById("diagnostico").style.display = area === "diagnostico" ? "block" : "none";
+  if (document.getElementById("buscar")) {
+    document.getElementById("buscar").style.display = area === "buscar" ? "block" : "none";
+    if (area === "buscar") {
+      document.getElementById("formBuscar").reset();
+      document.getElementById("resultadosBusca").innerHTML = "";
+    }
+  }
+  if (document.getElementById("ceo")) document.getElementById("ceo").style.display = area === "ceo" ? "block" : "none";
+  if (document.getElementById("catalogo")) document.getElementById("catalogo").style.display = area === "catalogo" ? "block" : "none";
   if(area === "pedidos") carregarPedidos();
   if(area === "servicos") carregarServicos();
   if(area === "diagnostico") carregarDiagnostico();
   if(area === "home") atualizarHome();
-  if(area === "buscar") {
-    document.getElementById("formBuscar").reset();
-    document.getElementById("resultadosBusca").innerHTML = "";
-  }
 };
 // FILTRO DATA - EVENTOS + exibição da data selecionada no formato BR
 if (typeof window !== "undefined") {
