@@ -13,250 +13,356 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-      
-    :root {
-      --primary: #000;
-      --primary-light: #222;
-      --danger: #c0392b;
-      --gray-bg: #fafafa;
-      --contrast-bg: #fff;
-      --input-bg: #f7f7f7;
-      --border: #e0e0e0;
-      --radius: 12px;
-      --shadow: 0 4px 20px 0 rgba(31,38,135,0.08);
-      --transition: 0.18s cubic-bezier(.4,0,.2,1);
-      --font-main: 'Inter', Arial, sans-serif;
-    }
-    html, body { overflow-x: hidden; }
-    body {
-      font-family: var(--font-main);
-      background: var(--gray-bg);
-      color: #111;
-      max-width: 750px;
-      margin: 0 auto;
-      padding: 0 0 40px 0;
-      min-height: 100vh;
-      box-sizing: border-box;
-      width: 100%;
-    }
-    #loader {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      left: 0; top: 0; right: 0; bottom: 0;
-      background: rgba(255,255,255,0.7);
-      justify-content: center;
-      align-items: center;
-    }
-    #loader > div {
-      border: 8px solid #eee;
-      border-top: 8px solid var(--primary);
-      border-radius: 50%;
-      width: 60px; height: 60px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-    #modalEditarServico, #modalEditarPedido, #modalIncluirDiagnostico {
-      display: none;
-      position: fixed;
-      z-index: 3000;
-      left: 0; top: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.18);
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-conteudo {
-      background: var(--contrast-bg);
-      border-radius: var(--radius);
-      max-width: 400px;
-      width: 96vw;
-      max-height: 98vh;
-      overflow-y: auto;
-      padding: 28px 20px 20px 20px;
-      box-shadow: var(--shadow);
-      position: relative;
-      animation: fadeIn 0.2s;
-      margin-bottom: 20vh;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97);} to   { opacity: 1; transform: scale(1);} }
-
-    #login, .pedido, .servico {
-      background: var(--contrast-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-top: 30px;
-      padding: 28px 22px 20px 22px;
-      border: 1.2px solid var(--border);
-      transition: box-shadow var(--transition), border var(--transition);
-    }
-    #login { max-width: 330px; margin: 60px auto; }
-    .logo-header img { height: 110px; border-radius: 11px; box-shadow: 0 4px 18px #d0e6ff2a; background: #ededed; margin-bottom: 10px; }
-    .logo-header { text-align: center; margin-bottom: 20px; }
-
-    input, select, button, textarea {
-      width: 100%; box-sizing: border-box;
-      font-family: var(--font-main);
-      font-size: 1.06em;
-      border-radius: var(--radius);
-      margin: 8px 0 14px 0;
-      border: 1.5px solid var(--border);
-      padding: 13px 13px;
-      background: var(--input-bg);
-      color: #222;
-      outline: none;
-      transition: border var(--transition), background var(--transition);
-    }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--primary);
-      background: #ececec;
-    }
-    textarea { min-height: 45px; resize: vertical; }
-    button {
-      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: #fff;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: background var(--transition), box-shadow var(--transition);
-      box-shadow: 0 2px 8px #00000022;
-      margin-bottom: 0;
-      letter-spacing: 0.02em;
-      font-size: 1.09em;
-    }
-    button:hover {
-      background: linear-gradient(90deg, #222 0%, #000 100%);
-      box-shadow: 0 4px 14px #00000022;
-    }
-    .btn-peq {
-      width: 32px; height: 32px; font-size: 19px; margin-left: 7px;
-      border-radius: 50%; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--primary);
-      color: #fff; border: none;
-      box-shadow: 0 2px 5px #0002;
-      transition: background var(--transition), box-shadow var(--transition);
-    }
-    .btn-peq:hover { background: #222; box-shadow: 0 2px 10px #0004; }
-    .azul { background: var(--primary) !important; }
-    .vermelho { background: linear-gradient(90deg,#fd746c 0%,#ff9068 100%) !important; }
-    .alerta, #login > div[style*="background:#fff3cd"] {
-      background: #fdf6d8 !important;
-      color: #8d6d1e !important;
-      border: 1.5px solid #ffe9b0 !important;
-      border-radius: 9px !important;
-      box-shadow: 0 2px 8px #fffbe7c7;
-      padding: 10px 13px !important;
-      font-size: 1.05em !important;
-      margin-bottom: 18px !important;
-      display: flex; align-items: center; gap: 10px;
-    }
-    #menu {
-      display: flex; justify-content: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
-      background: #ededed; border-radius: 16px; padding: 7px 0;
-      box-shadow: 0 1px 5px #0001;
-    }
-    #menu button {
-      width: auto; padding: 10px 30px; font-size: 1.05em;
-      font-weight: 600; border-radius: 12px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      margin: 6px 0;
-      transition: background var(--transition), color var(--transition);
-    }
-    #menu button:hover, #menu button:focus { background: #222; color: #fff; }
-    @media (max-width: 600px) {
-      body { padding: 0 0 30px 0; }
-      #login, .pedido, .servico { padding: 15px 4vw 17px 4vw; margin-top: 20px; }
-      #menu { flex-direction: column; gap: 7px; padding: 5px 0;}
-      #menu button { width: 100%; padding: 13px 0; font-size: 17px; }
-      .logo-header img { height: 110px; }
-    }
-    #home > div { margin-bottom: 10px; }
-    #home h2 { color: var(--primary); margin: 22px 0 16px 0; font-size: 1.5em;}
-    #home hr { margin: 18px 0; }
-    #home ul { margin: 0 0 0 10px; padding: 0 0 0 15px; }
-    #home canvas {
-      background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #e0e0e0;
-      margin-top: 10px; padding: 6px;
-    }
-    .status-aguardando { color: #c0392b; font-weight:bold; }
-    .status-concluido { color: #27ae60; font-weight:bold; }
-    .codigo-exibido {
-      display: inline-block;
-      background: var(--primary);
-      color: #fff;
-      font-weight: bold;
-      font-size: 1.01em;
-      padding: 2px 10px;
-      border-radius: 7px;
-      margin-left: 6px;
-      letter-spacing: 1px;
-    }
-    .filtro-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 10px 0 14px 0;
+<style>
+:root {
+  --primary: #000;
+  --primary-light: #222;
+  --danger: #c0392b;
+  --gray-bg: #fafafa;
+  --contrast-bg: #fff;
+  --input-bg: #f7f7f7;
+  --border: #e0e0e0;
+  --radius: 12px;
+  --shadow: 0 4px 20px 0 rgba(31,38,135,0.08);
+  --transition: 0.18s cubic-bezier(.4,0,.2,1);
+  --font-main: 'Inter', Arial, sans-serif;
+}
+html, body { overflow-x: hidden; }
+body {
+  font-family: var(--font-main);
+  background: var(--gray-bg);
+  color: #111;
+  max-width: 100vw !important;
+  width: 100vw !important;
+  min-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 0 40px 0 !important;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
+#loader {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.7);
+  justify-content: center;
+  align-items: center;
+}
+#loader > div {
+  border: 8px solid #eee;
+  border-top: 8px solid var(--primary);
+  border-radius: 50%;
+  width: 60px; height: 60px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+
+#modalEditarServico, #modalEditarPedido, #modalIncluirDiagnostico {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  justify-content: center;
+  align-items: center;
+}
+.modal-conteudo {
+  background: var(--contrast-bg);
+  border-radius: var(--radius);
+  max-width: 400px;
+  width: 96vw;
+  max-height: 98vh;
+  overflow-y: auto;
+  padding: 28px 20px 20px 20px;
+  box-shadow: var(--shadow);
+  position: relative;
+  animation: fadeIn 0.2s;
+  margin-bottom: 20vh;
+}
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.97);} to   { opacity: 1; transform: scale(1);} }
+
+#login, .pedido, .servico {
+  background: var(--contrast-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 30px;
+  padding: 28px 22px 20px 22px;
+  border: 1.2px solid var(--border);
+  transition: box-shadow var(--transition), border var(--transition);
+}
+#login { max-width: 330px; margin: 60px auto; }
+.logo-header img { height: 110px; border-radius: 11px; box-shadow: 0 4px 18px #d0e6ff2a; background: #ededed; margin-bottom: 10px; }
+.logo-header { text-align: center; margin-bottom: 20px; }
+
+input, select, button, textarea {
+  width: 100%; box-sizing: border-box;
+  font-family: var(--font-main);
+  font-size: 1.06em;
+  border-radius: var(--radius);
+  margin: 8px 0 14px 0;
+  border: 1.5px solid var(--border);
+  padding: 13px 13px;
+  background: var(--input-bg);
+  color: #222;
+  outline: none;
+  transition: border var(--transition), background var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  background: #ececec;
+}
+textarea { min-height: 45px; resize: vertical; }
+button {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
+  box-shadow: 0 2px 8px #00000022;
+  margin-bottom: 0;
+  letter-spacing: 0.02em;
+  font-size: 1.09em;
+}
+button:hover {
+  background: linear-gradient(90deg, #222 0%, #000 100%);
+  box-shadow: 0 4px 14px #00000022;
+}
+.btn-peq {
+  width: 32px; height: 32px; font-size: 19px; margin-left: 7px;
+  border-radius: 50%; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary);
+  color: #fff; border: none;
+  box-shadow: 0 2px 5px #0002;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.btn-peq:hover { background: #222; box-shadow: 0 2px 10px #0004; }
+.azul { background: var(--primary) !important; }
+.vermelho { background: linear-gradient(90deg,#fd746c 0%,#ff9068 100%) !important; }
+.alerta, #login > div[style*="background:#fff3cd"] {
+  background: #fdf6d8 !important;
+  color: #8d6d1e !important;
+  border: 1.5px solid #ffe9b0 !important;
+  border-radius: 9px !important;
+  box-shadow: 0 2px 8px #fffbe7c7;
+  padding: 10px 13px !important;
+  font-size: 1.05em !important;
+  margin-bottom: 18px !important;
+  display: flex; align-items: center; gap: 10px;
+}
+
+/* PAINÉIS PRINCIPAIS */
+#home, #pedidos, #servicos, #diagnostico, #buscar, #catalogo, #ceo {
+  width: 100vw;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 32px 3vw 32px 3vw;
+  min-height: 60vh;
+  gap: 28px;
+  background: transparent;
+  overflow-x: hidden;
+  /* NUNCA mexa no display aqui! */
+}
+
+/* MENU moderno responsivo */
+#menu {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100vw;
+  max-width: 1100px;
+  margin: 0 auto 24px auto;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 4px 20px #0001;
+  padding: 14px 0 10px 0;
+  background: #ededed;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb #ededed;
+}
+#menu::-webkit-scrollbar {
+  height: 7px;
+  background: #ededed;
+}
+#menu::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 8px;
+}
+#menu button {
+  min-width: 110px;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Topo painel: nome de usuário nunca corta */
+#interface > div[style*="justify-content: flex-end"] {
+  width: 100vw;
+  box-sizing: border-box;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 20px 5vw 20px 5vw;
+  font-size: 1.12em;
+  font-weight: 500;
+  border-bottom: 1.5px solid #eee;
+  box-shadow: 0 2px 12px #0000000c;
+  position: relative;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+#interface > div[style*="justify-content: flex-end"] #nomeUsuario {
+  font-weight: bold;
+  color: #fff;
+  background: transparent;
+  padding: 6px 16px 6px 10px;
+  border-radius: 8px 0 0 8px;
+  font-size: 1.07em;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 8px #0003;
+  border-right: 0;
+  max-width: 340px;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.2;
+  box-shadow: none;
+  word-break: break-word;
+}
+
+/* Botão de logout harmonizado */
+#interface > div[style*="justify-content: flex-end"] button[aria-label="Sair do sistema"] {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: 0;
+  box-shadow: 0 2px 8px #e35e5e19;
+  transition: background .13s, box-shadow .13s, transform .13s;
+}
+#interface > div[style*="justify-content: flex-end"] button[aria-label="Sair do sistema"]:hover {
+  background: #a12719;
+  box-shadow: 0 4px 14px #e35e5e33;
+  transform: scale(1.08);
+}
+
+/* Responsivo */
+@media (max-width: 1100px) {
+  #menu, #home, #pedidos, #servicos, #diagnostico, #buscar, #catalogo, #ceo {
+    max-width: 99vw;
+    padding-left: 1vw;
+    padding-right: 1vw;
+  }
+}
+@media (max-width: 700px) {
+  #menu { border-radius: 0 0 12px 12px; gap: 7px; }
+  #interface > div[style*="justify-content: flex-end"] { 
+    padding: 13px 2vw;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #home, #pedidos, #servicos, #diagnostico, #buscar, #catalogo, #ceo {
+    padding: 13px 1vw;
+  }
+  #home .home-flex > div { min-width: 0; width: 100%; }
+}
+
+/* Outros estilos do sistema (mantidos do original) */
+#home > div { margin-bottom: 10px; }
+#home h2 { color: var(--primary); margin: 22px 0 16px 0; font-size: 1.5em;}
+#home hr { margin: 18px 0; }
+#home ul { margin: 0 0 0 10px; padding: 0 0 0 15px; }
+#home canvas {
+  background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #e0e0e0;
+  margin-top: 10px; padding: 6px;
+}
+.status-aguardando { color: #c0392b; font-weight:bold; }
+.status-concluido { color: #27ae60; font-weight:bold; }
+.codigo-exibido {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.01em;
+  padding: 2px 10px;
+  border-radius: 7px;
+  margin-left: 6px;
+  letter-spacing: 1px;
+}
+.filtro-checkbox {
+display: flex;
+align-items: center;
+gap: 7px;
+margin: 10px 0 14px 0;
+}
 .filtro-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-  margin: 0;
+width: 18px;
+height: 18px;
+accent-color: var(--primary);
+margin: 0;
 }
 .switch {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0 14px 0;
+display: flex;
+align-items: center;
+gap: 10px;
+margin: 10px 0 14px 0;
 }
-
 .switch input[type="checkbox"] {
-  width: 0;
-  height: 0;
-  opacity: 0;
+width: 0;
+height: 0;
+opacity: 0;
 }
-
 .switch-label {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
+position: relative;
+display: inline-block;
+width: 36px;
+height: 20px;
 }
-
 .switch-label input:checked + .slider {
-  background: var(--primary);
+background: var(--primary);
 }
-
 .switch-label .slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #ccc;
-  border-radius: 20px;
-  transition: .3s;
+position: absolute;
+cursor: pointer;
+top: 0; left: 0; right: 0; bottom: 0;
+background: #ccc;
+border-radius: 20px;
+transition: .3s;
 }
-
 .switch-label .slider:before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: 50%;
-  transition: .3s;
+content: "";
+position: absolute;
+left: 3px;
+top: 3px;
+width: 14px;
+height: 14px;
+background: white;
+border-radius: 50%;
+transition: .3s;
 }
-
 .switch-label input:checked + .slider:before {
-  transform: translateX(16px);
+transform: translateX(16px);
 }
-
-  </style>
+</style>
 </head>
 <body>
 <div id="loader"><div></div></div>
@@ -346,6 +452,7 @@
 <button type="button" onclick="formCelularResetar()" style="background:#eee; color:#2c5dab;width:auto;padding:6px 14px;font-size:0.97em;border-radius:8px;">Limpar</button>
   </form>
   <hr>
+  <input type="text" id="filtroCatalogo" placeholder="Buscar por marca, modelo ou info..." style="margin-bottom:10px;width:100%;max-width:370px;">
   <div id="listaCelulares"></div>
 </div>
   <div id="pedidos" style="display:none;">
