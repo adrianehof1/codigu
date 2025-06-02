@@ -1465,123 +1465,80 @@ const agora = new Date();
   window.atualizarBotaoPendencias();
 };
 
-window.executarBusca = function() {
-  const termo = document.getElementById("buscaNome").value.trim().toLowerCase();
-  const tipo = document.getElementById("buscaTipo").value;
-  const resultadosDiv = document.getElementById("resultadosBusca");
-  resultadosDiv.innerHTML = "";
+window.executarBusca = async function() {
+  const termo = document.getElementById('buscaNome').value.trim().toLowerCase();
+  const tipo = document.getElementById('buscaTipo').value;
   if (!termo) {
-    resultadosDiv.innerHTML = "<i>Digite um termo para buscar.</i>";
+    alert("Digite algo para buscar.");
     return;
   }
-  let encontrados = [];
-  if (tipo === "servicos") {
-    for (let id in servicosSalvos) {
-      const s = servicosSalvos[id];
-      if (
-        (s.cliente || "").toLowerCase().includes(termo) ||
-        (s.marca || "").toLowerCase().includes(termo) ||
-        (s.modelo || "").toLowerCase().includes(termo) ||
-        (s.tipo || "").toLowerCase().includes(termo) ||
-        (s.codigo || "").toLowerCase().includes(termo)
-      ) {
-        // Aqui você pode colocar mais campos se desejar
-        let dataExpiracao = "";
-        let garantiaStatus = "";
-        if (s.status === "concluido" && s.dataServico) {
-          const dataServico = new Date(s.dataServico + "T00:00:00");
-          const dataExp = new Date(dataServico.getTime() + 90 * 24 * 60 * 60 * 1000);
-          dataExpiracao = dataParaBR(dataExp.toISOString().split("T")[0]);
-          const hoje = new Date();
-          hoje.setHours(0,0,0,0);
-          dataExp.setHours(0,0,0,0);
-          if (dataExp >= hoje) {
-            garantiaStatus = `<span style="color:green;font-weight:bold;">Garantia vigente</span>`;
-          } else {
-            garantiaStatus = `<span style="color:#c0392b;font-weight:bold;">Garantia expirada</span>`;
-          }
-        }
-        encontrados.push(`<div class="servico">
-          <b>${s.cliente}</b> | ${s.local} <br>
-          ${s.marca} ${s.modelo} - ${s.tipo} <br>
-          Realizado em: ${dataParaBR(s.dataServico)} | Garantia até: ${dataExpiracao||'-'}<br>
-          ${garantiaStatus ? garantiaStatus+"<br>" : ""}
-          <b>Código:</b> <span class="codigo-exibido">${s.codigo || 'Não gerado'}</span>
-        </div>`);
-      }
-    }
-  } else if (tipo === "pedidos") {
-    for (let id in pedidosSalvos) {
-      const p = pedidosSalvos[id];
-      if (
-        (p.marca || "").toLowerCase().includes(termo) ||
-        (p.modelo || "").toLowerCase().includes(termo) ||
-        (p.peca || "").toLowerCase().includes(termo) ||
-        (p.loja || "").toLowerCase().includes(termo) ||
-        (p.codigo || "").toLowerCase().includes(termo)
-      ) {
-        encontrados.push(`<div class="pedido">
-          <b>${p.loja}</b> | ${dataParaBR(p.data)} <br>
-          ${p.marca} ${p.modelo} - ${p.peca} (Qtd: ${p.quantidade})<br>
-          <b>Código:</b> <span class="codigo-exibido">${p.codigo || 'Não gerado'}</span>
-        </div>`);
-      }
-    }
-  } else if (tipo === "diagnostico") {
-    for (let id in diagnosticoSalvos) {
-      const d = diagnosticoSalvos[id];
-      if (
-        (d.cliente || "").toLowerCase().includes(termo) ||
-        (d.marca || "").toLowerCase().includes(termo) ||
-        (d.modelo || "").toLowerCase().includes(termo) ||
-        (d.problema || "").toLowerCase().includes(termo) ||
-        (d.codigo || "").toLowerCase().includes(termo)
-      ) {
-        encontrados.push(`<div class="pedido">
-          <b>${d.cliente}</b> | ${d.marca} ${d.modelo}<br>
-          <b>Problema:</b> ${d.problema}<br>
-          <b>Código:</b> <span class="codigo-exibido">${d.codigo || 'Não gerado'}</span>
-        </div>`);
-      }
-    }
-  } else if (tipo === "codigo") {
-    // Buscar em todos os códigos
-    for (let id in servicosSalvos) {
-      const s = servicosSalvos[id];
-      if ((s.codigo || "").toLowerCase() === termo) {
-        encontrados.push(`<div class="servico">
-          <b>${s.cliente}</b> | ${s.local}<br>
-          ${s.marca} ${s.modelo} - ${s.tipo}<br>
-          <b>Código:</b> <span class="codigo-exibido">${s.codigo}</span>
-        </div>`);
-      }
-    }
-    for (let id in pedidosSalvos) {
-      const p = pedidosSalvos[id];
-      if ((p.codigo || "").toLowerCase() === termo) {
-        encontrados.push(`<div class="pedido">
-          <b>${p.loja}</b> | ${dataParaBR(p.data)}<br>
-          ${p.marca} ${p.modelo} - ${p.peca} (Qtd: ${p.quantidade})<br>
-          <b>Código:</b> <span class="codigo-exibido">${p.codigo}</span>
-        </div>`);
-      }
-    }
-    for (let id in diagnosticoSalvos) {
-      const d = diagnosticoSalvos[id];
-      if ((d.codigo || "").toLowerCase() === termo) {
-        encontrados.push(`<div class="pedido">
-          <b>${d.cliente}</b> | ${d.marca} ${d.modelo}<br>
-          <b>Problema:</b> ${d.problema}<br>
-          <b>Código:</b> <span class="codigo-exibido">${d.codigo}</span>
-        </div>`);
-      }
-    }
+  document.getElementById("resultadosBusca").innerHTML = "Buscando...";
+  const snap = await get(ref(db, tipo));
+  if (!snap.exists()) {
+    document.getElementById("resultadosBusca").innerHTML = "Nenhum resultado encontrado.";
+    return;
   }
-  if (encontrados.length === 0) {
-    resultadosDiv.innerHTML = "<i>Nenhum resultado encontrado.</i>";
-  } else {
-    resultadosDiv.innerHTML = `<b>${encontrados.length} resultado(s):</b><br>` + encontrados.join("");
+  const resultados = [];
+  Object.entries(snap.val()).forEach(([id, item]) => {
+    let campos = [];
+    if (tipo === "servicos") {
+      campos = [item.cliente, item.marca, item.modelo, item.tipo, item.status];
+    } else if (tipo === "pedidos") {
+      campos = [item.marca, item.modelo, item.peca, item.loja, item.data, item.quantidade];
+    } else if (tipo === "diagnostico") {
+      campos = [
+        item.cliente, item.marca, item.modelo, item.problema, item.loja, item.data, item.dataCadastro,
+        item.diagCliente, item.diagMarca, item.diagModelo, item.diagProblema, item.diagLoja, item.diagData
+      ];
+    }
+    campos = campos.filter(Boolean);
+    if (campos.some(c => c.toLowerCase().includes(termo))) {
+      resultados.push(item);
+    }
+  });
+  if (resultados.length === 0) {
+    document.getElementById("resultadosBusca").innerHTML = "Nenhum resultado encontrado.";
+    return;
   }
+  let html = resultados.map(item => {
+    if (tipo === "servicos") {
+      return `
+        <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:12px 15px;margin-bottom:10px;box-shadow:0 2px 10px #eee;">
+          <b>Cliente:</b> ${item.cliente || "-"}<br>
+          <b>Marca:</b> ${item.marca || "-"}<br>
+          <b>Modelo:</b> ${item.modelo || "-"}<br>
+          <b>Tipo:</b> ${item.tipo || "-"}<br>
+          <b>Status:</b> ${item.status || "-"}<br>
+          <b>Data:</b> ${item.dataServico || "-"}<br>
+          <b>Código:</b> ${item.codigo || "-"}
+        </div>
+      `;
+    } else if (tipo === "pedidos") {
+      return `
+        <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:12px 15px;margin-bottom:10px;box-shadow:0 2px 10px #eee;">
+          <b>Marca:</b> ${item.marca || "-"}<br>
+          <b>Modelo:</b> ${item.modelo || "-"}<br>
+          <b>Peça:</b> ${item.peca || "-"}<br>
+          <b>Quantidade:</b> ${item.quantidade || "-"}<br>
+          <b>Data:</b> ${item.data || "-"}<br>
+          <b>Loja:</b> ${item.loja || "-"}
+        </div>
+      `;
+    } else if (tipo === "diagnostico") {
+      return `
+        <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:12px 15px;margin-bottom:10px;box-shadow:0 2px 10px #eee;">
+          <b>Cliente:</b> ${item.cliente || item.diagCliente || "-"}<br>
+          <b>Marca:</b> ${item.marca || item.diagMarca || "-"}<br>
+          <b>Modelo:</b> ${item.modelo || item.diagModelo || "-"}<br>
+          <b>Problema:</b> ${item.problema || item.diagProblema || "-"}<br>
+          <b>Loja:</b> ${item.loja || item.diagLoja || "-"}<br>
+          <b>Data:</b> ${item.dataCadastro || item.data || item.dataDiagnostico || item.diagData || "-"}
+        </div>
+      `;
+    }
+    return "";
+  }).join("");
+  document.getElementById("resultadosBusca").innerHTML = html;
 };
 window.gerarComprovantePDF = function(id) {
   const s = servicosSalvos[id];
